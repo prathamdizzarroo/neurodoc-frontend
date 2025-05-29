@@ -15,9 +15,9 @@ import {
 import { Building2, MapPin, Phone, Mail } from 'lucide-react';
 
 const formSchema = z.object({
-  siteName: z.string().min(1, { message: "Site name is required" }),
+  facilityName: z.string().min(1, { message: "Facility name is required" }),
   campusName: z.string().optional(),
-  address: z.string().min(1, { message: "Site address is required" }),
+  address: z.string().min(1, { message: "Facility address is required" }),
   city: z.string().min(1, { message: "City is required" }),
   state: z.string().min(1, { message: "State/Province is required" }),
   country: z.string().min(1, { message: "Country is required" }),
@@ -28,27 +28,27 @@ const formSchema = z.object({
   departmentEmail: z.string().email().optional(),
 });
 
-const SiteForm = ({ site, onSubmit, onCancel }) => {
+const FacilityForm = ({ facility, onSubmit, onCancel }) => {
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      siteName: site?.name || "",
-      campusName: site?.campusName || "",
-      address: site?.address?.street || "",
-      city: site?.address?.city || "",
-      state: site?.address?.state || "",
-      country: site?.address?.country || "",
-      postalCode: site?.address?.postalCode || "",
-      departmentName: site?.department?.name || "",
-      departmentAddress: site?.department?.address || "",
-      departmentPhone: site?.department?.phone || "",
-      departmentEmail: site?.department?.email || "",
+      facilityName: facility?.name || "",
+      campusName: facility?.campusName || "",
+      address: facility?.address?.street || "",
+      city: facility?.address?.city || "",
+      state: facility?.address?.state || "",
+      country: facility?.address?.country || "",
+      postalCode: facility?.address?.postalCode || "",
+      departmentName: facility?.department?.name || "",
+      departmentAddress: facility?.department?.address || "",
+      departmentPhone: facility?.department?.phone || "",
+      departmentEmail: facility?.department?.email || "",
     },
   });
 
   const handleSubmit = (data) => {
     onSubmit({
-      name: data.siteName,
+      name: data.facilityName,
       campusName: data.campusName,
       address: {
         street: data.address,
@@ -75,14 +75,14 @@ const SiteForm = ({ site, onSubmit, onCancel }) => {
           <div className="space-y-4">
             <FormField
               control={form.control}
-              name="siteName"
+              name="facilityName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Site Name *</FormLabel>
+                  <FormLabel>Facility Name *</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <Building2 className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
-                      <Input className="pl-10" placeholder="Enter Site Name" {...field} />
+                      <Input className="pl-10" placeholder="Enter Facility Name" {...field} />
                     </div>
                   </FormControl>
                   <FormMessage />
@@ -117,11 +117,11 @@ const SiteForm = ({ site, onSubmit, onCancel }) => {
               name="address"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Site Address *</FormLabel>
+                  <FormLabel>Facility Address *</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
-                      <Input className="pl-10" placeholder="Enter Site Address" {...field} />
+                      <Input className="pl-10" placeholder="Enter Facility Address" {...field} />
                     </div>
                   </FormControl>
                   <FormMessage />
@@ -277,7 +277,7 @@ const SiteForm = ({ site, onSubmit, onCancel }) => {
             Cancel
           </Button>
           <Button type="submit">
-            {site ? 'Update Site' : 'Add Site'}
+            {facility ? 'Update Facility' : 'Add Facility'}
           </Button>
         </div>
       </form>
@@ -285,4 +285,4 @@ const SiteForm = ({ site, onSubmit, onCancel }) => {
   );
 };
 
-export default SiteForm; 
+export default FacilityForm; 

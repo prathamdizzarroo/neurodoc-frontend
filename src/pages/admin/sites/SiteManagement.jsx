@@ -99,7 +99,7 @@ const mockSites = [
   }
 ];
 
-const SiteManagement = () => {
+const FacilityManagement = () => {
   const [showDialog, setShowDialog] = useState(false);
   const [selectedSite, setSelectedSite] = useState(null);
   const [sites, setSites] = useState(mockSites);
@@ -231,4 +231,4 @@ const SiteManagement = () => {
   );
 };
 
-export default SiteManagement; 
+export default FacilityManagement; 
