@@ -7,6 +7,7 @@ import { dirname } from 'path'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 // https://vite.dev/config/
 export default defineConfig({
+  base: '/',
   plugins: [react()],
   resolve: {
     alias: {
