@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { Plus, Pencil, Trash2, Search, Eye, Users2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,338 +18,6 @@ import { userService } from "@/services/user.service";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-// Update the dummyUsers data to include assigned studies and facilities
-const dummyUsers = [
-  {
-    _id: "68097fa71faa7fdcaa35f125",
-    firstName: "ERIN",
-    lastName: "SIKAITIS",
-    middleName: "",
-    email: "erin.sikaitis@example.com",
-    role: "FILING_LEVEL_MANAGER",
-    status: "ACTIVE",
-    organization: "Dizzaroo",
-    department: "Physical Therapy",
-    phoneNumber: "2484253540",
-    npiNumber: "1659180511",
-    npiType: "1",
-    mailingAddress: {
-      address: "5874 ANDOVER RD",
-      city: "TROY",
-      state: "MI",
-      zip: "480982398",
-      country: "US",
-      phone: "2484253540"
-    },
-    practiceAddress: {
-      address: "3090 PREMIERE PKWY STE 400",
-      city: "DULUTH",
-      state: "GA",
-      zip: "300978915",
-      country: "US",
-      phone: "8774073422",
-      fax: "8774074329"
-    },
-    permissions: ["UPLOAD_DOCUMENTS", "REVIEW_DOCUMENTS"],
-    assignedStudies: [],
-    assignedFacilities: [
-      { _id: "1", name: "Mayo Clinic", city: "Rochester", country: "United States" }
-    ],
-    taxonomy: [
-      {
-        primary: true,
-        code: "225X00000X",
-        state: "",
-        licenseNumber: "",
-        _id: "6809873b53e3d80c14202db4"
-      }
-    ]
-  },
-  {
-    _id: "68097fa71faa7fdcaa35f129",
-    firstName: "CORTNEY",
-    lastName: "YOUNG",
-    middleName: "ANN",
-    email: "cortney.young@example.com",
-    role: "FILING_LEVEL_MANAGER",
-    status: "ACTIVE",
-    organization: "Dizzaroo",
-    department: "Physical Therapy",
-    phoneNumber: "5208849819",
-    npiNumber: "1619207727",
-    npiType: "1",
-    mailingAddress: {
-      address: "1777 W SAINT MARYS RD",
-      city: "TUCSON",
-      state: "AZ",
-      zip: "857452687",
-      country: "US",
-      phone: "5208849819",
-      fax: "5208840175"
-    },
-    practiceAddress: {
-      address: "205 INDUSTRIAL CV",
-      city: "RIDGELAND",
-      state: "MS",
-      zip: "391572715",
-      country: "US",
-      phone: "8774073422",
-      fax: "8774074329"
-    },
-    permissions: ["UPLOAD_DOCUMENTS", "REVIEW_DOCUMENTS"],
-    assignedStudies: [
-      { _id: "STUDY001", title: "Phase III Clinical Trial for Alzheimer's Treatment" }
-    ],
-    assignedFacilities: [
-      { _id: "2", name: "Johns Hopkins Hospital", city: "Baltimore", country: "United States" }
-    ],
-    taxonomy: [
-      {
-        primary: true,
-        code: "225100000X",
-        state: "AZ",
-        licenseNumber: "LPT011206",
-        _id: "6809873b53e3d80c14202dc6"
-      }
-    ],
-    otherIdentifiers: [
-      {
-        issuer: "01",
-        state: "MO",
-        number: "47440011",
-        _id: "6809873b53e3d80c14202dc7"
-      }
-    ]
-  },
-  {
-    _id: "68097fa71faa7fdcaa35f12c",
-    firstName: "JEHAN",
-    lastName: "MATOZA",
-    middleName: "ASIS",
-    email: "jehan.matoza@example.com",
-    role: "FILING_LEVEL_MANAGER",
-    status: "ACTIVE",
-    organization: "Dizzaroo",
-    department: "Physical Therapy",
-    phoneNumber: "2155570057",
-    npiNumber: "1922339696",
-    npiType: "1",
-    mailingAddress: {
-      address: "1628 JOHN F KENNEDY BLVD",
-      city: "PHILADELPHIA",
-      state: "PA",
-      zip: "191032125",
-      country: "US",
-      phone: "2155570057",
-      fax: "2155570061"
-    },
-    practiceAddress: {
-      address: "1156 BOWMAN RD UNIT 105",
-      city: "MT PLEASANT",
-      state: "SC",
-      zip: "294643803",
-      country: "US",
-      phone: "8774073422",
-      fax: "8774074329"
-    },
-    permissions: ["UPLOAD_DOCUMENTS", "REVIEW_DOCUMENTS"],
-    assignedStudies: [],
-    assignedFacilities: [
-      { _id: "3", name: "Cleveland Clinic", city: "Cleveland", country: "United States" }
-    ],
-    taxonomy: [
-      {
-        primary: true,
-        code: "225100000X",
-        state: "NY",
-        licenseNumber: "049571",
-        _id: "6809873b53e3d80c14202de3"
-      }
-    ]
-  },
-  {
-    _id: "68097fa71faa7fdcaa35f12f",
-    firstName: "WHITNEY",
-    lastName: "OSBORN",
-    middleName: "M",
-    email: "whitney.osborn@example.com",
-    role: "FILING_LEVEL_MANAGER",
-    status: "ACTIVE",
-    organization: "Dizzaroo",
-    department: "Physical Therapy",
-    phoneNumber: "4132726178",
-    npiNumber: "1598203986",
-    npiType: "1",
-    mailingAddress: {
-      address: "101 WASON AVE",
-      city: "SPRINGFIELD",
-      state: "MA",
-      zip: "011071140",
-      country: "US",
-      phone: "4132726178",
-      fax: "7743176206"
-    },
-    practiceAddress: {
-      address: "391 COMMON ST",
-      city: "DEDHAM",
-      state: "MA",
-      zip: "020264055",
-      country: "US",
-      phone: "8774073422",
-      fax: "8774074329"
-    },
-    permissions: ["UPLOAD_DOCUMENTS", "REVIEW_DOCUMENTS"],
-    assignedStudies: [
-      { _id: "STUDY002", title: "Parkinson's Disease Treatment Study" }
-    ],
-    assignedFacilities: [],
-    taxonomy: [
-      {
-        primary: true,
-        code: "225100000X",
-        state: "MA",
-        licenseNumber: "16539",
-        _id: "6809873b53e3d80c14202dba"
-      }
-    ]
-  },
-  {
-    _id: "68097fa71faa7fdcaa35f131",
-    firstName: "MARGARET",
-    lastName: "CAPOTOSTO",
-    middleName: "",
-    email: "margaret.capotosto@example.com",
-    role: "FILING_LEVEL_MANAGER",
-    status: "ACTIVE",
-    organization: "Dizzaroo",
-    department: "Physical Therapy",
-    phoneNumber: "8163925462",
-    npiNumber: "1447065651",
-    npiType: "1",
-    mailingAddress: {
-      address: "2609 CHARLOTTE ST",
-      city: "KANSAS CITY",
-      state: "MO",
-      zip: "641082736",
-      country: "US",
-      phone: "8163925462"
-    },
-    practiceAddress: {
-      address: "1650 HIGH ST",
-      city: "WASHINGTON",
-      state: "MO",
-      zip: "630904365",
-      country: "US",
-      phone: "8774073422",
-      fax: "8774074329"
-    },
-    permissions: ["UPLOAD_DOCUMENTS", "REVIEW_DOCUMENTS"],
-    assignedStudies: [],
-    assignedFacilities: [
-      { _id: "4", name: "Massachusetts General Hospital", city: "Boston", country: "United States" }
-    ],
-    taxonomy: [
-      {
-        primary: true,
-        code: "225X00000X",
-        state: "MO",
-        licenseNumber: "2025009628",
-        _id: "6809873b53e3d80c14202dc0"
-      }
-    ]
-  },
-  {
-    _id: "68097fa71faa7fdcaa35f134",
-    firstName: "CAROLINE",
-    lastName: "CHEESBOROUGH",
-    middleName: "MARIA",
-    email: "caroline.cheesborough@example.com",
-    role: "FILING_LEVEL_MANAGER",
-    status: "ACTIVE",
-    organization: "Dizzaroo",
-    department: "Physical Therapy",
-    phoneNumber: "8436978633",
-    npiNumber: "1285333617",
-    permissions: ["UPLOAD_DOCUMENTS", "REVIEW_DOCUMENTS"],
-    assignedStudies: [
-      { _id: "STUDY003", title: "Multiple Sclerosis Treatment Research" }
-    ],
-    assignedFacilities: []
-  },
-  {
-    _id: "68097fa71faa7fdcaa35f13c",
-    firstName: "ANJALI",
-    lastName: "KUMARI",
-    middleName: "",
-    email: "anjali.kumari@example.com",
-    role: "FILING_LEVEL_MANAGER",
-    status: "ACTIVE",
-    organization: "Dizzaroo",
-    department: "Physical Therapy",
-    phoneNumber: "5757404509",
-    npiNumber: "1134369309",
-    permissions: ["UPLOAD_DOCUMENTS", "REVIEW_DOCUMENTS"],
-    assignedStudies: [],
-    assignedFacilities: [
-      { _id: "5", name: "Stanford Medical Center", city: "Stanford", country: "United States" }
-    ]
-  },
-  {
-    _id: "68097fa71faa7fdcaa35f142",
-    firstName: "PRESTON",
-    lastName: "WARREN",
-    middleName: "",
-    email: "preston.warren@example.com",
-    role: "FILING_LEVEL_MANAGER",
-    status: "ACTIVE",
-    organization: "Dizzaroo",
-    department: "Physical Therapy",
-    phoneNumber: "2514343626",
-    npiNumber: "1235472135",
-    permissions: ["UPLOAD_DOCUMENTS", "REVIEW_DOCUMENTS"],
-    assignedStudies: [
-      { _id: "STUDY004", title: "Epilepsy Treatment Study" }
-    ],
-    assignedFacilities: []
-  },
-  {
-    _id: "68097fa71faa7fdcaa35f145",
-    firstName: "AUDREY",
-    lastName: "PHILLIPS",
-    middleName: "",
-    email: "audrey.phillips@example.com",
-    role: "FILING_LEVEL_MANAGER",
-    status: "ACTIVE",
-    organization: "Dizzaroo",
-    department: "Physical Therapy",
-    phoneNumber: "4024361000",
-    npiNumber: "1609660612",
-    permissions: ["UPLOAD_DOCUMENTS", "REVIEW_DOCUMENTS"],
-    assignedStudies: [],
-    assignedFacilities: [
-      { _id: "6", name: "UCLA Medical Center", city: "Los Angeles", country: "United States" }
-    ]
-  },
-  {
-    _id: "68097fa71faa7fdcaa35f147",
-    firstName: "DAKOTA",
-    lastName: "TURNBOUGH",
-    middleName: "LORINA",
-    email: "dakota.turnbough@example.com",
-    role: "FILING_LEVEL_MANAGER",
-    status: "ACTIVE",
-    organization: "Dizzaroo",
-    department: "Physical Therapy",
-    phoneNumber: "6206392322",
-    npiNumber: "1952195968",
-    permissions: ["UPLOAD_DOCUMENTS", "REVIEW_DOCUMENTS"],
-    assignedStudies: [
-      { _id: "STUDY005", title: "Diabetes Type 2 Research Study" }
-    ],
-    assignedFacilities: []
-  }
-];
-
 const UserManagement = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
@@ -357,13 +25,59 @@ const UserManagement = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const queryClient = useQueryClient();
 
-  const { data: users } = {
-    data: dummyUsers
-  };
+  // Fetch users with error handling
+  const { data: usersResponse, isLoading, error } = useQuery({
+    queryKey: ['users'],
+    queryFn: async () => {
+      const response = await userService.getAllUsers();
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch users');
+      }
+      return response;
+    },
+    retry: 1
+  });
+
+  const users = usersResponse?.data || [];
+
+  // Create/Update mutation
+  const userMutation = useMutation({
+    mutationFn: async (userData) => {
+      const response = userData.id 
+        ? await userService.updateUser(userData.id, userData)
+        : await userService.createUser(userData);
+      
+      if (!response.success) {
+        throw new Error(response.error || 'Operation failed');
+      }
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['users']);
+      setIsFormOpen(false);
+      toast({
+        title: "Success",
+        description: selectedUser ? "User updated successfully" : "User created successfully"
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "An error occurred",
+        variant: "destructive"
+      });
+    }
+  });
 
   // Delete mutation
   const deleteMutation = useMutation({
-    mutationFn: (userId) => userService.deleteUser(userId),
+    mutationFn: async (userId) => {
+      const response = await userService.deleteUser(userId);
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to delete user');
+      }
+      return response;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries(['users']);
       toast({
@@ -374,7 +88,32 @@ const UserManagement = () => {
     onError: (error) => {
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to delete user",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Status update mutation
+  const statusMutation = useMutation({
+    mutationFn: async ({ userId, status }) => {
+      const response = await userService.updateUserStatus(userId, status);
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to update status');
+      }
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['users']);
+      toast({
+        title: "Success",
+        description: "User status updated successfully"
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update status",
         variant: "destructive"
       });
     }
@@ -388,9 +127,9 @@ const UserManagement = () => {
     setIsFormOpen(true);
   };
 
-  const handleDelete = async (userId) => {
+  const handleDelete = async (user) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
-      deleteMutation.mutate(userId._id);
+      deleteMutation.mutate(user._id);
     }
   };
 
@@ -399,11 +138,34 @@ const UserManagement = () => {
     setIsViewOpen(true);
   };
 
+  const handleStatusChange = (user, newStatus) => {
+    statusMutation.mutate({ userId: user._id, status: newStatus });
+  };
+
   const filteredUsers = users?.filter(user => 
-    user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     user.firstName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     user.lastName?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  ) || [];
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <div className="text-red-500 mb-4">Error loading users: {error.message}</div>
+        <Button onClick={() => queryClient.invalidateQueries(['users'])}>
+          Retry
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-6 bg-gray-50 min-h-screen">
@@ -418,7 +180,7 @@ const UserManagement = () => {
               <Users2 className="h-5 w-5 text-primary" />
               <div>
                 <p className="text-sm text-gray-500">Total Users</p>
-                <p className="text-2xl font-semibold">{users?.length || 0}</p>
+                <p className="text-2xl font-semibold">{users.length}</p>
               </div>
             </div>
           </div>
@@ -463,7 +225,7 @@ const UserManagement = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredUsers?.map((user) => (
+                {filteredUsers.map((user) => (
                   <TableRow key={user._id} className="hover:bg-gray-50">
                     <TableCell className="font-medium">
                       {user.firstName} {user.lastName}
@@ -478,7 +240,10 @@ const UserManagement = () => {
                       <Badge 
                         variant={user.status === 'ACTIVE' ? 'success' : 
                                 user.status === 'SUSPENDED' ? 'warning' : 'destructive'}
-                        className="font-normal"
+                        className="font-normal cursor-pointer"
+                        onClick={() => handleStatusChange(user, 
+                          user.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE'
+                        )}
                       >
                         {user.status}
                       </Badge>
@@ -513,7 +278,7 @@ const UserManagement = () => {
                     </TableCell>
                   </TableRow>
                 ))}
-                {filteredUsers?.length === 0 && (
+                {filteredUsers.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-8 text-gray-500">
                       No users found matching your search criteria
@@ -535,10 +300,8 @@ const UserManagement = () => {
           </DialogHeader>
           <UserForm
             user={selectedUser}
-            onSuccess={() => {
-              setIsFormOpen(false);
-              queryClient.invalidateQueries(['users']);
-            }}
+            onSubmit={(formData) => userMutation.mutate(formData)}
+            onCancel={() => setIsFormOpen(false)}
           />
         </DialogContent>
       </Dialog>
@@ -565,11 +328,11 @@ const UserManagement = () => {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">NPI Number</p>
-                    <p className="font-medium">{selectedUser.npiNumber}</p>
+                    <p className="font-medium">{selectedUser.npiNumber || 'N/A'}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">NPI Type</p>
-                    <p className="font-medium">{selectedUser.npiType}</p>
+                    <p className="font-medium">{selectedUser.npiType || 'N/A'}</p>
                   </div>
                 </div>
               </div>
@@ -583,19 +346,20 @@ const UserManagement = () => {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Organization</p>
-                    <p className="font-medium">{selectedUser.organizationName || 'N/A'}</p>
+                    <p className="font-medium">{selectedUser.organization || 'N/A'}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Status</p>
-                    <span className={`inline-flex px-2 py-1 rounded-full text-xs ${
-                      selectedUser.status === 'ACTIVE' 
-                        ? 'bg-green-100 text-green-800' 
-                        : selectedUser.status === 'SUSPENDED'
-                        ? 'bg-orange-100 text-orange-800'
-                        : 'bg-red-100 text-red-800'
-                    }`}>
+                    <Badge 
+                      variant={selectedUser.status === 'ACTIVE' ? 'success' : 
+                              selectedUser.status === 'SUSPENDED' ? 'warning' : 'destructive'}
+                      className="font-normal cursor-pointer"
+                      onClick={() => handleStatusChange(selectedUser, 
+                        selectedUser.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE'
+                      )}
+                    >
                       {selectedUser.status}
-                    </span>
+                    </Badge>
                   </div>
                 </div>
               </div>
@@ -708,6 +472,9 @@ const UserManagement = () => {
                     {selectedUser.assignedStudies.map(study => (
                       <div key={study._id} className="p-2 bg-muted rounded-md">
                         <p className="font-medium">{study.title}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Access Level: {study.accessLevel}
+                        </p>
                       </div>
                     ))}
                   </div>

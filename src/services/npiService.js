@@ -1,7 +1,9 @@
 import axios from 'axios';
 
+import { config } from '../config/config';
+
+const API_BASE_URL = `${config.API_URL}/api`;
 // Update the base URL to point to the backend server
-const API_BASE_URL = '/api';
 
 export const searchNPI = async (params) => {
   const response = await axios.get(`${API_BASE_URL}/npi/search`, { params });
