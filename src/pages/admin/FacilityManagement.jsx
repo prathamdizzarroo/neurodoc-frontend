@@ -694,15 +694,17 @@ const FacilityManagement = () => {
   });
 
   // Fetch facilities with filters
-  const { data: facilitiesData, isLoading } = useQuery({
+  const { data: facilitiesData, isLoading, error: queryError } = useQuery({
     queryKey: ['facilities', filters],
     queryFn: async () => {
       const response = await facilityService.getFacilities(filters);
       if (!response.success) {
-        setError(response.error);
-        return { data: [] };
+        throw new Error(response.error || 'Failed to fetch facilities');
       }
-      return response;
+      return {
+        ...response,
+        data: Array.isArray(response.data) ? response.data : []
+      };
     }
   });
 
@@ -775,7 +777,19 @@ const FacilityManagement = () => {
   };
 
   const handleSubmit = (formData) => {
-    facilityMutation.mutate(formData);
+    // Ensure we're passing the correct data structure
+    const facilityData = {
+      ...formData,
+      // Ensure facilityType is uppercase
+      facilityType: formData.facilityType?.toUpperCase(),
+    };
+    
+    // Remove facilityId from update data
+    if (selectedFacility) {
+      delete facilityData.facilityId;
+    }
+    
+    facilityMutation.mutate(facilityData);
   };
 
   // Replace the existing search state with the filter state update
@@ -1025,6 +1039,14 @@ const FacilityManagement = () => {
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
           </div>
+        ) : queryError ? (
+          <div className="flex justify-center items-center h-64 text-red-500">
+            <span>{queryError.message}</span>
+          </div>
+        ) : !facilitiesData?.data || facilitiesData.data.length === 0 ? (
+          <div className="flex justify-center items-center h-64">
+            <span>No facilities found</span>
+          </div>
         ) : (
           <Table>
             <TableHeader>
@@ -1050,7 +1072,7 @@ const FacilityManagement = () => {
                 >
                   <TableCell>
                     <Badge variant="outline" className="font-mono">
-                      {facility.siteId}
+                      {facility.facilityId}
                     </Badge>
                   </TableCell>
                   <TableCell>

@@ -1,5 +1,20 @@
 import api from './api';
 
+// Utility function to generate facility code
+const generateFacilityCode = (facilityType, name) => {
+  // Get first 4 characters of facility type
+  const typePrefix = facilityType.substring(0, 4).toUpperCase();
+  
+  // Get first 4 characters of facility name
+  const namePrefix = name.substring(0, 4).toUpperCase();
+  
+  // Generate random 4 character alphanumeric string
+  const randomStr = Math.random().toString(36).substring(2, 6).toUpperCase();
+  
+  // Combine all parts
+  return `${typePrefix}-${namePrefix}-${randomStr}`;
+};
+
 class FacilityService {
   // Get all facilities with filters
   async getFacilities(params = {}) {
@@ -7,7 +22,7 @@ class FacilityService {
       const response = await api.get('/facilities', { params });
       return {
         success: true,
-        data: response.data
+        data: response.data.data || []
       };
     } catch (error) {
       return {
@@ -36,7 +51,19 @@ class FacilityService {
   // Create new facility
   async createFacility(facilityData) {
     try {
-      const response = await api.post('/facilities', facilityData);
+      // Generate facility code
+      const facilityCode = generateFacilityCode(
+        facilityData.siteType || 'FACILITY',
+        facilityData.name
+      );
+
+      // Add facility code to the data
+      const facilityDataWithCode = {
+        ...facilityData,
+        facilityId: facilityCode
+      };
+
+      const response = await api.post('/facilities', facilityDataWithCode);
       return {
         success: true,
         data: response.data
@@ -52,7 +79,10 @@ class FacilityService {
   // Update facility
   async updateFacility(id, facilityData) {
     try {
-      const response = await api.put(`/facilities/${id}`, facilityData);
+      // Create a copy of the data without facilityId
+      const { facilityId, ...updateData } = facilityData;
+
+      const response = await api.patch(`/facilities/${id}`, updateData);
       return {
         success: true,
         data: response.data

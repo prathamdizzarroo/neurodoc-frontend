@@ -13,20 +13,36 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Building2, MapPin, Phone, Mail } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const formSchema = z.object({
-  facilityName: z.string().min(1, { message: "Facility name is required" }),
+  facilityName: z.string().min(1, "Facility name is required"),
   campusName: z.string().optional(),
-  address: z.string().min(1, { message: "Facility address is required" }),
-  city: z.string().min(1, { message: "City is required" }),
-  state: z.string().min(1, { message: "State/Province is required" }),
-  country: z.string().min(1, { message: "Country is required" }),
-  postalCode: z.string().min(1, { message: "Postal code is required" }),
+  facilityType: z.string().min(1, "Facility type is required"),
+  address: z.string().min(1, "Address is required"),
+  city: z.string().min(1, "City is required"),
+  state: z.string().min(1, "State/Province is required"),
+  country: z.string().min(1, "Country is required"),
+  postalCode: z.string().min(1, "Postal code is required"),
   departmentName: z.string().optional(),
   departmentAddress: z.string().optional(),
   departmentPhone: z.string().optional(),
   departmentEmail: z.string().email().optional(),
 });
+
+const facilityTypes = [
+  { value: 'HOSPITAL', label: 'Hospital' },
+  { value: 'CLINIC', label: 'Clinic' },
+  { value: 'RESEARCH_CENTER', label: 'Research Center' },
+  { value: 'PHYSICIAN_OFFICE', label: 'Physician Office' },
+  { value: 'OTHER', label: 'Other' }
+];
 
 const FacilityForm = ({ facility, onSubmit, onCancel }) => {
   const form = useForm({
@@ -34,6 +50,7 @@ const FacilityForm = ({ facility, onSubmit, onCancel }) => {
     defaultValues: {
       facilityName: facility?.name || "",
       campusName: facility?.campusName || "",
+      facilityType: facility?.facilityType || "",
       address: facility?.address?.street || "",
       city: facility?.address?.city || "",
       state: facility?.address?.state || "",
@@ -47,9 +64,10 @@ const FacilityForm = ({ facility, onSubmit, onCancel }) => {
   });
 
   const handleSubmit = (data) => {
-    onSubmit({
+    const formData = {
       name: data.facilityName,
       campusName: data.campusName,
+      facilityType: data.facilityType,
       address: {
         street: data.address,
         city: data.city,
@@ -63,7 +81,14 @@ const FacilityForm = ({ facility, onSubmit, onCancel }) => {
         phone: data.departmentPhone,
         email: data.departmentEmail,
       },
-    });
+    };
+
+    // If this is an update, include the facilityId
+    if (facility?.facilityId) {
+      formData.facilityId = facility.facilityId;
+    }
+
+    onSubmit(formData);
   };
 
   return (
@@ -85,6 +110,30 @@ const FacilityForm = ({ facility, onSubmit, onCancel }) => {
                       <Input className="pl-10" placeholder="Enter Facility Name" {...field} />
                     </div>
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="facilityType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Facility Type *</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select facility type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {facilityTypes.map((type) => (
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
