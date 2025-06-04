@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useRef } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import React, { useState, useRef } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Table,
   TableBody,
@@ -25,7 +25,7 @@ import {
   Download, Upload, BarChart3, Clock, FileText, Activity, RefreshCcw, 
   ChevronDown, ChevronUp, FileSpreadsheet, AlertTriangle, CheckCircle2, Eye
 } from 'lucide-react';
-import SiteForm from '../../components/sites/SiteForm';
+import FacilityForm from '../../components/facilities/FacilityForm';
 import { Badge } from "@/components/ui/badge.jsx";
 import { Progress } from "@/components/ui/progress.jsx";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip.jsx";
@@ -34,6 +34,7 @@ import { Calendar, MapPin, Phone, Mail } from 'lucide-react';
 import { Checkbox } from "@/components/ui/checkbox.jsx";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion.jsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import facilityService from '../../services/facility.service';
 
 // Dummy users data
 const dummyUsers = [
@@ -55,7 +56,7 @@ const dummyUsers = [
 ];
 
 // Dummy sites data
-const dummySites = [
+const dummyFacilities = [
   {
     _id: '1',
     siteId: 'HOSP1A2B3C4D-HOSP-STUDY1A2B',
@@ -511,77 +512,77 @@ const countries = [
 // Add activity log sample data
 const activityLogData = {
   "1": [
-    { id: "log-001", action: "Site Created", user: "Dr. Sarah Johnson", timestamp: "2023-01-10T14:30:00Z", details: "Initial site setup completed" },
+    { id: "log-001", action: "Facility Created", user: "Dr. Sarah Johnson", timestamp: "2023-01-10T14:30:00Z", details: "Initial facility setup completed" },
     { id: "log-002", action: "Study Assigned", user: "Dr. Sarah Johnson", timestamp: "2023-01-15T09:45:00Z", details: "Added to Phase III Alzheimer's Treatment Trial" },
     { id: "log-003", action: "User Assigned", user: "Admin", timestamp: "2023-01-15T10:30:00Z", details: "Dr. Michael Chen assigned as Sub-Investigator" },
-    { id: "log-004", action: "Site Activated", user: "Admin", timestamp: "2023-01-15T14:20:00Z", details: "Site status changed to ACTIVE" },
+    { id: "log-004", action: "Facility Activated", user: "Admin", timestamp: "2023-01-15T14:20:00Z", details: "Facility status changed to ACTIVE" },
     { id: "log-005", action: "Enrollment Updated", user: "Dr. Emily Rodriguez", timestamp: "2023-02-20T11:15:00Z", details: "Enrollment changed from 0 to 25" },
     { id: "log-006", action: "Study Assigned", user: "Admin", timestamp: "2023-03-01T16:40:00Z", details: "Added to Parkinson's Disease Treatment Study" },
     { id: "log-007", action: "Enrollment Updated", user: "Dr. Emily Rodriguez", timestamp: "2023-04-10T09:30:00Z", details: "Enrollment increased to 75" },
     { id: "log-008", action: "User Assigned", user: "Admin", timestamp: "2023-06-05T15:20:00Z", details: "Dr. Mark Wilson assigned as Data Manager" },
     { id: "log-009", action: "Enrollment Updated", user: "Dr. Emily Rodriguez", timestamp: "2023-07-22T13:45:00Z", details: "Enrollment increased to 120" },
-    { id: "log-010", action: "Site Information Updated", user: "Admin", timestamp: "2023-09-14T10:10:00Z", details: "Contact information updated" },
+    { id: "log-010", action: "Facility Information Updated", user: "Admin", timestamp: "2023-09-14T10:10:00Z", details: "Contact information updated" },
     { id: "log-011", action: "Enrollment Updated", user: "Dr. Emily Rodriguez", timestamp: "2023-11-30T14:05:00Z", details: "Enrollment increased to 150" }
   ],
   "2": [
-    { id: "log-101", action: "Site Created", user: "Admin", timestamp: "2023-02-25T11:20:00Z", details: "Initial site setup completed" },
-    { id: "log-102", action: "Site Activated", user: "Admin", timestamp: "2023-03-01T09:30:00Z", details: "Site status changed to ACTIVE" },
+    { id: "log-101", action: "Facility Created", user: "Admin", timestamp: "2023-02-25T11:20:00Z", details: "Initial facility setup completed" },
+    { id: "log-102", action: "Facility Activated", user: "Admin", timestamp: "2023-03-01T09:30:00Z", details: "Facility status changed to ACTIVE" },
     { id: "log-103", action: "User Assigned", user: "Admin", timestamp: "2023-03-01T10:15:00Z", details: "Dr. James Wilson assigned as Principal Investigator" }
   ],
   "3": [
-    { id: "log-201", action: "Site Created", user: "Admin", timestamp: "2023-05-15T13:40:00Z", details: "Initial site setup completed" },
-    { id: "log-202", action: "Site Status Changed", user: "Admin", timestamp: "2023-06-01T15:20:00Z", details: "Site status set to PLANNED" }
+    { id: "log-201", action: "Facility Created", user: "Admin", timestamp: "2023-05-15T13:40:00Z", details: "Initial facility setup completed" },
+    { id: "log-202", action: "Facility Status Changed", user: "Admin", timestamp: "2023-06-01T15:20:00Z", details: "Facility status set to PLANNED" }
   ],
   "4": [
-    { id: "log-301", action: "Site Created", user: "Admin", timestamp: "2023-02-10T10:15:00Z", details: "Initial site setup completed" },
-    { id: "log-302", action: "Site Activated", user: "Admin", timestamp: "2023-02-15T16:30:00Z", details: "Site status changed to ACTIVE" },
+    { id: "log-301", action: "Facility Created", user: "Admin", timestamp: "2023-02-10T10:15:00Z", details: "Initial facility setup completed" },
+    { id: "log-302", action: "Facility Activated", user: "Admin", timestamp: "2023-02-15T16:30:00Z", details: "Facility status changed to ACTIVE" },
     { id: "log-303", action: "Enrollment Updated", user: "Dr. Thomas White", timestamp: "2023-04-20T11:45:00Z", details: "Enrollment changed from 0 to 30" },
     { id: "log-304", action: "Enrollment Updated", user: "Dr. Thomas White", timestamp: "2023-06-10T14:20:00Z", details: "Enrollment increased to 60" },
     { id: "log-305", action: "Enrollment Updated", user: "Dr. Thomas White", timestamp: "2023-07-05T09:50:00Z", details: "Enrollment increased to 80" },
-    { id: "log-306", action: "Site Suspended", user: "Admin", timestamp: "2023-08-15T13:10:00Z", details: "Site status changed to SUSPENDED due to protocol violation" }
+    { id: "log-306", action: "Facility Suspended", user: "Admin", timestamp: "2023-08-15T13:10:00Z", details: "Facility status changed to SUSPENDED due to protocol violation" }
   ],
   "5": [
-    { id: "log-401", action: "Site Created", user: "Admin", timestamp: "2023-03-25T14:50:00Z", details: "Initial site setup completed" },
-    { id: "log-402", action: "Site Activated", user: "Admin", timestamp: "2023-04-01T10:20:00Z", details: "Site status changed to ACTIVE" }
+    { id: "log-401", action: "Facility Created", user: "Admin", timestamp: "2023-03-25T14:50:00Z", details: "Initial facility setup completed" },
+    { id: "log-402", action: "Facility Activated", user: "Admin", timestamp: "2023-04-01T10:20:00Z", details: "Facility status changed to ACTIVE" }
   ],
   "6": [
-    { id: "log-501", action: "Site Created", user: "Dr. William Harrington", timestamp: "2023-02-08T09:15:00Z", details: "Initial site setup completed" },
-    { id: "log-502", action: "Site Activated", user: "Admin", timestamp: "2023-02-10T11:30:00Z", details: "Site status changed to ACTIVE" },
+    { id: "log-501", action: "Facility Created", user: "Dr. William Harrington", timestamp: "2023-02-08T09:15:00Z", details: "Initial facility setup completed" },
+    { id: "log-502", action: "Facility Activated", user: "Admin", timestamp: "2023-02-10T11:30:00Z", details: "Facility status changed to ACTIVE" },
     { id: "log-503", action: "Study Assigned", user: "Admin", timestamp: "2023-02-10T14:45:00Z", details: "Added to Phase III Alzheimer's Treatment Trial" },
     { id: "log-504", action: "Enrollment Updated", user: "Dr. William Harrington", timestamp: "2023-04-15T10:20:00Z", details: "Enrollment changed from 0 to 40" },
     { id: "log-505", action: "Enrollment Updated", user: "Dr. William Harrington", timestamp: "2023-07-22T15:30:00Z", details: "Enrollment increased to 85" }
   ],
   "7": [
-    { id: "log-601", action: "Site Created", user: "Dr. Lukas Schmidt", timestamp: "2023-01-18T10:45:00Z", details: "Initial site setup completed" },
-    { id: "log-602", action: "Site Activated", user: "Admin", timestamp: "2023-01-20T14:20:00Z", details: "Site status changed to ACTIVE" },
+    { id: "log-601", action: "Facility Created", user: "Dr. Lukas Schmidt", timestamp: "2023-01-18T10:45:00Z", details: "Initial facility setup completed" },
+    { id: "log-602", action: "Facility Activated", user: "Admin", timestamp: "2023-01-20T14:20:00Z", details: "Facility status changed to ACTIVE" },
     { id: "log-603", action: "Study Assigned", user: "Admin", timestamp: "2023-01-20T16:15:00Z", details: "Added to Parkinson's Disease Treatment Study" },
     { id: "log-604", action: "Enrollment Updated", user: "Dr. Lukas Schmidt", timestamp: "2023-04-05T11:10:00Z", details: "Enrollment changed from 0 to 50" },
     { id: "log-605", action: "Enrollment Updated", user: "Dr. Lukas Schmidt", timestamp: "2023-07-10T09:45:00Z", details: "Enrollment increased to 90" },
     { id: "log-606", action: "Enrollment Updated", user: "Dr. Lukas Schmidt", timestamp: "2023-10-18T14:30:00Z", details: "Enrollment increased to 120" }
   ],
   "9": [
-    { id: "log-701", action: "Site Created", user: "Dr. Rajiv Patel", timestamp: "2023-02-22T13:15:00Z", details: "Initial site setup completed" },
-    { id: "log-702", action: "Site Activated", user: "Admin", timestamp: "2023-02-25T10:45:00Z", details: "Site status changed to ACTIVE" },
+    { id: "log-701", action: "Facility Created", user: "Dr. Rajiv Patel", timestamp: "2023-02-22T13:15:00Z", details: "Initial facility setup completed" },
+    { id: "log-702", action: "Facility Activated", user: "Admin", timestamp: "2023-02-25T10:45:00Z", details: "Facility status changed to ACTIVE" },
     { id: "log-703", action: "Study Assigned", user: "Admin", timestamp: "2023-02-25T14:30:00Z", details: "Added to Multiple Sclerosis Treatment Research" },
     { id: "log-704", action: "Enrollment Updated", user: "Dr. Rajiv Patel", timestamp: "2023-04-12T11:20:00Z", details: "Enrollment changed from 0 to 60" },
     { id: "log-705", action: "Enrollment Updated", user: "Dr. Rajiv Patel", timestamp: "2023-07-05T15:45:00Z", details: "Enrollment increased to 110" },
     { id: "log-706", action: "Enrollment Updated", user: "Dr. Rajiv Patel", timestamp: "2023-10-20T09:30:00Z", details: "Enrollment increased to 145" }
   ],
   "13": [
-    { id: "log-801", action: "Site Created", user: "Dr. Li Wei", timestamp: "2023-02-02T09:45:00Z", details: "Initial site setup completed" },
-    { id: "log-802", action: "Site Activated", user: "Admin", timestamp: "2023-02-05T13:20:00Z", details: "Site status changed to ACTIVE" },
+    { id: "log-801", action: "Facility Created", user: "Dr. Li Wei", timestamp: "2023-02-02T09:45:00Z", details: "Initial facility setup completed" },
+    { id: "log-802", action: "Facility Activated", user: "Admin", timestamp: "2023-02-05T13:20:00Z", details: "Facility status changed to ACTIVE" },
     { id: "log-803", action: "Study Assigned", user: "Admin", timestamp: "2023-02-05T16:15:00Z", details: "Added to Phase III Alzheimer's Treatment Trial" },
     { id: "log-804", action: "Enrollment Updated", user: "Dr. Li Wei", timestamp: "2023-04-10T10:30:00Z", details: "Enrollment changed from 0 to 70" },
     { id: "log-805", action: "Enrollment Updated", user: "Dr. Li Wei", timestamp: "2023-07-15T14:45:00Z", details: "Enrollment increased to 130" },
     { id: "log-806", action: "Enrollment Updated", user: "Dr. Li Wei", timestamp: "2023-11-05T11:20:00Z", details: "Enrollment increased to 175" }
   ],
   "15": [
-    { id: "log-901", action: "Site Created", user: "Dr. Martin Weber", timestamp: "2023-01-22T13:10:00Z", details: "Initial site setup completed" },
-    { id: "log-902", action: "Site Activated", user: "Admin", timestamp: "2023-01-25T10:45:00Z", details: "Site status changed to ACTIVE" },
+    { id: "log-901", action: "Facility Created", user: "Dr. Martin Weber", timestamp: "2023-01-22T13:10:00Z", details: "Initial facility setup completed" },
+    { id: "log-902", action: "Facility Activated", user: "Admin", timestamp: "2023-01-25T10:45:00Z", details: "Facility status changed to ACTIVE" },
     { id: "log-903", action: "Study Assigned", user: "Admin", timestamp: "2023-01-25T14:30:00Z", details: "Added to Epilepsy Treatment Study" },
     { id: "log-904", action: "Enrollment Updated", user: "Dr. Martin Weber", timestamp: "2023-03-15T11:20:00Z", details: "Enrollment changed from 0 to 30" },
     { id: "log-905", action: "Enrollment Updated", user: "Dr. Martin Weber", timestamp: "2023-05-20T09:45:00Z", details: "Enrollment increased to 60" },
-    { id: "log-906", action: "Site Suspended", user: "Admin", timestamp: "2023-07-12T14:30:00Z", details: "Site status changed to SUSPENDED due to protocol deviation concerns" }
+    { id: "log-906", action: "Facility Suspended", user: "Admin", timestamp: "2023-07-12T14:30:00Z", details: "Facility status changed to SUSPENDED due to protocol deviation concerns" }
   ]
 };
 
@@ -645,32 +646,12 @@ const getStatusColor = (status) => {
   }
 };
 
-// Add this function to generate IDs
-const generateSiteId = (siteData) => {
-  // Generate a unique hospital ID based on the site name and timestamp
-  const hospitalId = `HOSP${Date.now().toString(36).toUpperCase()}`;
-  
-  // Generate a department ID based on the site type
-  const departmentId = siteData.siteType === 'HOSPITAL' ? 'HOSP' :
-                      siteData.siteType === 'CLINIC' ? 'CLIN' :
-                      siteData.siteType === 'RESEARCH_CENTER' ? 'RES' :
-                      siteData.siteType === 'PHYSICIAN_OFFICE' ? 'PHY' : 'OTH';
-  
-  // Generate a study-specific site ID
-  const studySiteId = `STUDY${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
-  
-  return {
-    hospitalId,
-    departmentId,
-    studySiteId,
-    siteId: `${hospitalId}-${departmentId}-${studySiteId}`
-  };
-};
-
-const SiteManagement = () => {
+const FacilityManagement = () => {
+  const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
-  const [selectedSite, setSelectedSite] = useState(null);
-  const [sites, setSites] = useState(dummySites);
+  const [selectedFacility, setSelectedFacility] = useState(null);
+  const [sites] = useState(dummyFacilities);
+  const [error, setError] = useState(null);
 
   // Inside the component, add these filter states
   const [filters, setFilters] = useState({
@@ -691,7 +672,7 @@ const SiteManagement = () => {
         {
           _id: 'STUDY001',
           title: 'Phase III Clinical Trial for Alzheimer\'s Treatment',
-          sites: ['1', '2'] // Site IDs assigned to this study
+          sites: ['1', '2'] // Facility IDs assigned to this study
         },
         {
           _id: 'STUDY002',
@@ -712,107 +693,103 @@ const SiteManagement = () => {
     }
   });
 
-  // Mutation for creating/updating a site
-  const siteMutation = useMutation({
-    mutationFn: async (siteData) => {
-      if (selectedSite) {
-        // Update existing site
-        const updatedSite = {
-          ...siteData,
-          _id: selectedSite._id,
-          siteId: selectedSite.siteId
-        };
-        setSites(sites.map(site => 
-          site._id === selectedSite._id ? updatedSite : site
-        ));
-        return updatedSite;
+  // Fetch facilities with filters
+  const { data: facilitiesData, isLoading, error: queryError } = useQuery({
+    queryKey: ['facilities', filters],
+    queryFn: async () => {
+      const response = await facilityService.getFacilities(filters);
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch facilities');
+      }
+      return {
+        ...response,
+        data: Array.isArray(response.data) ? response.data : []
+      };
+    }
+  });
+
+  // Create/Update facility mutation
+  const facilityMutation = useMutation({
+    mutationFn: (facilityData) => {
+      if (selectedFacility) {
+        return facilityService.updateFacility(selectedFacility._id, facilityData);
+      }
+      return facilityService.createFacility(facilityData);
+    },
+    onSuccess: (response) => {
+      if (response.success) {
+        queryClient.invalidateQueries(['facilities']);
+        setShowForm(false);
+        setSelectedFacility(null);
+        setError(null);
       } else {
-        // Generate new IDs for the site
-        const ids = generateSiteId(siteData);
-        const newSite = {
-          ...siteData,
-          ...ids,
-          _id: String(sites.length + 1)
-        };
-        setSites([...sites, newSite]);
-        return newSite;
+        setError(response.error);
       }
     },
-    onSuccess: () => {
-      setShowForm(false);
-      setSelectedSite(null);
+    onError: (error) => {
+      setError(error.message);
     }
   });
 
-  // Mutation for deleting a site
+  // Delete facility mutation
   const deleteMutation = useMutation({
-    mutationFn: async (siteId) => {
-      setSites(sites.filter(site => site._id !== siteId));
+    mutationFn: (id) => facilityService.deleteFacility(id),
+    onSuccess: (response) => {
+      if (response.success) {
+        queryClient.invalidateQueries(['facilities']);
+        setError(null);
+      } else {
+        setError(response.error);
+      }
+    },
+    onError: (error) => {
+      setError(error.message);
     }
   });
 
-  // Mutation for assigning a study to a site
-  const assignStudyMutation = useMutation({
-    mutationFn: async ({ siteId, studyId }) => {
-      setSites(sites.map(site => {
-        if (site._id === siteId) {
-          const study = studies.find(s => s._id === studyId);
-          const updatedStudies = site.studies || [];
-          if (!updatedStudies.some(s => s._id === studyId)) {
-            updatedStudies.push({
-              _id: study._id,
-              title: study.title,
-              status: 'ACTIVE',
-              startDate: new Date().toISOString().split('T')[0],
-              endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-            });
-          }
-          return {
-            ...site,
-            studies: updatedStudies
-          };
-        }
-        return site;
-      }));
+  // Batch import mutation
+  const batchImportMutation = useMutation({
+    mutationFn: (file) => facilityService.batchImport(file),
+    onSuccess: (response) => {
+      if (response.success) {
+        queryClient.invalidateQueries(['facilities']);
+        setShowBatchImport(false);
+        setBatchImportFile(null);
+        setError(null);
+      } else {
+        setError(response.error);
+      }
+    },
+    onError: (error) => {
+      setError(error.message);
     }
   });
 
-  // Mutation for assigning users to a site
-  const assignUsersMutation = useMutation({
-    mutationFn: async ({ siteId, userIds }) => {
-      setSites(sites.map(site => {
-        if (site._id === siteId) {
-          return {
-            ...site,
-            assignedUsers: userIds.map(id => dummyUsers.find(user => user._id === id))
-          };
-        }
-        return site;
-      }));
-    }
-  });
-
-  const handleEdit = (site) => {
-    setSelectedSite(site);
+  const handleEdit = (facility) => {
+    setSelectedFacility(facility);
     setShowForm(true);
   };
 
-  const handleDelete = (site) => {
-    if (window.confirm('Are you sure you want to delete this site?')) {
-      deleteMutation.mutate(site._id);
+  const handleDelete = (facility) => {
+    if (window.confirm('Are you sure you want to delete this facility?')) {
+      deleteMutation.mutate(facility._id);
     }
   };
 
   const handleSubmit = (formData) => {
-    siteMutation.mutate(formData);
-  };
-
-  const handleAssignStudy = (siteId, studyId) => {
-    assignStudyMutation.mutate({ siteId, studyId });
-  };
-
-  const handleAssignUsers = (siteId, userIds) => {
-    assignUsersMutation.mutate({ siteId, userIds });
+    // Ensure we're passing the correct data structure
+    const facilityData = {
+      ...formData,
+      // Ensure facilityType is uppercase
+      facilityType: formData.facilityType?.toUpperCase(),
+    };
+    
+    // Remove facilityId from update data
+    if (selectedFacility) {
+      delete facilityData.facilityId;
+    }
+    
+    facilityMutation.mutate(facilityData);
   };
 
   // Replace the existing search state with the filter state update
@@ -824,65 +801,19 @@ const SiteManagement = () => {
     }));
   };
 
-  // Update the filteredSites calculation
-  const filteredSites = useMemo(() => {
-    return sites.filter(site => {
-      // Search filter (name, ID, city)
-      const searchMatch = 
-        filters.search === '' || 
-        site.name.toLowerCase().includes(filters.search.toLowerCase()) ||
-        site.siteId.toLowerCase().includes(filters.search.toLowerCase()) ||
-        (site.address?.city?.toLowerCase().includes(filters.search.toLowerCase()));
-      
-      // Site type filter
-      const typeMatch = 
-        filters.siteType === '' || 
-        site.siteType === filters.siteType;
-      
-      // Status filter
-      const statusMatch = 
-        filters.status === '' || 
-        site.status === filters.status;
-      
-      // Country filter
-      const countryMatch = 
-        filters.country === '' || 
-        site.address?.country === filters.country;
-      
-      // Enrollment status filter
-      const enrollmentMatch = 
-        filters.enrollmentStatus === '' || 
-        (filters.enrollmentStatus === 'FULL' && site.actualEnrollment >= site.enrollmentTarget) ||
-        (filters.enrollmentStatus === 'PARTIAL' && site.actualEnrollment > 0 && site.actualEnrollment < site.enrollmentTarget) ||
-        (filters.enrollmentStatus === 'NONE' && site.actualEnrollment === 0);
-      
-      // Study filter
-      const studyMatch = 
-        filters.assignedStudy === '' || 
-        site.studies?.some(study => study._id === filters.assignedStudy);
-      
-      // User filter
-      const userMatch = 
-        filters.assignedUser === '' || 
-        site.assignedUsers?.some(user => user._id === filters.assignedUser);
-      
-      return searchMatch && typeMatch && statusMatch && countryMatch && enrollmentMatch && studyMatch && userMatch;
-    });
-  }, [sites, filters]);
-
   // Add state for batch import and activity log
-  const [selectedSites] = useState([]);
+  const [selectedFacilities] = useState([]);
   const [showAnalytics, setShowAnalytics] = useState(true);
   const [showActivityLog, setShowActivityLog] = useState(false);
-  const [selectedSiteForActivity, setSelectedSiteForActivity] = useState(null);
+  const [selectedFacilityForActivity, setSelectedFacilityForActivity] = useState(null);
   const [showBatchImport, setShowBatchImport] = useState(false);
   const fileInputRef = useRef(null);
   const [batchImportFile, setBatchImportFile] = useState(null);
-  const [isImporting, setIsImporting] = useState(false);
+  const [isImporting] = useState(false);
   const [showStudiesDialog, setShowStudiesDialog] = useState(false);
   const [showStaffDialog, setShowStaffDialog] = useState(false);
-  const [selectedSiteForStudies, setSelectedSiteForStudies] = useState(null);
-  const [selectedSiteForStaff, setSelectedSiteForStaff] = useState(null);
+  const [selectedFacilityForStudies, setSelectedFacilityForStudies] = useState(null);
+  const [selectedFacilityForStaff, setSelectedFacilityForStaff] = useState(null);
 
   // Add batch import handler
   const handleBatchImportClick = () => {
@@ -897,61 +828,29 @@ const SiteManagement = () => {
   };
 
   const handleBatchImport = () => {
-    setIsImporting(true);
-    
-    // Simulate import process
-    setTimeout(() => {
-      // In a real application, you would process the CSV/Excel file here
-      // and add the imported sites to your database
-      
-      // For demo purposes, we'll just add a sample imported site
-      const siteData = {
-        name: 'Imported Test Site',
-        status: 'PLANNED',
-        siteType: 'HOSPITAL',
-        address: {
-          street: '123 Import St',
-          city: 'Import City',
-          state: 'CA',
-          country: 'United States',
-          postalCode: '12345'
-        },
-        contactInfo: {
-          phone: '(555) 123-4567',
-          email: 'contact@importsite.org',
-          fax: '(555) 123-4568'
-        },
-        startDate: '2023-12-01',
-        estimatedEndDate: '2024-12-31',
-        enrollmentTarget: 100,
-        actualEnrollment: 0,
-        studies: []
-      };
-
-      // Generate IDs for the imported site
-      const ids = generateSiteId(siteData);
-      const newSite = {
-        ...siteData,
-        ...ids,
-        _id: String(sites.length + 1)
-      };
-      
-      setSites([...sites, newSite]);
-      setIsImporting(false);
-      setShowBatchImport(false);
-      setBatchImportFile(null);
-    }, 2000);
+    if (batchImportFile) {
+      batchImportMutation.mutate(batchImportFile);
+    }
   };
 
   // Add activity log viewer handler
-  const handleViewActivity = (site) => {
-    setSelectedSiteForActivity(site);
+  const handleViewActivity = (facility) => {
+    setSelectedFacilityForActivity(facility);
     setShowActivityLog(true);
   };
 
   return (
     <Card className="mt-4">
       <CardContent className="p-6">
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
+            <div className="flex items-center">
+              <AlertTriangle className="h-5 w-5 text-red-500 mr-2" />
+              <span className="text-red-700">{error}</span>
+            </div>
+          </div>
+        )}
+        
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-semibold">Facility Management</h2>
           <div className="flex space-x-2">
@@ -983,7 +882,7 @@ const SiteManagement = () => {
             />
             
             <Button onClick={() => {
-              setSelectedSite(null);
+              setSelectedFacility(null);
               setShowForm(true);
             }}>
               <Plus className="mr-2 h-4 w-4" />
@@ -1136,144 +1035,158 @@ const SiteManagement = () => {
           </Card>
         </div>
 
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[180px]">Facility Code</TableHead>
-              <TableHead>Facility Name</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>City, Country</TableHead>
-              <TableHead className="text-center">Active Studies</TableHead>
-              <TableHead className="text-center">Assigned Staff</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredSites.map((site) => (
-              <TableRow 
-                key={site._id} 
-                className={`hover:bg-gray-50 ${
-                  selectedSites.includes(site._id) 
-                    ? 'bg-blue-50' 
-                    : ''
-                }`}
-              >
-                <TableCell>
-                  <Badge variant="outline" className="font-mono">
-                    {site.siteId}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center space-x-2">
-                    <Building2 className="h-4 w-4 text-gray-500" />
-                    <div>
-                      <div className="font-medium">{site.name}</div>
-                      <div className="text-sm text-gray-500">{site.siteType}</div>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge 
-                    variant={getStatusColor(site.status).variant}
-                    className={`px-2 py-1 ${getStatusColor(site.status).text}`}
-                  >
-                    {site.status}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center space-x-1">
-                    <MapPin className="h-4 w-4 text-gray-500" />
-                    <span>{site.address?.city}, {site.address?.country}</span>
-                  </div>
-                </TableCell>
-                <TableCell className="text-center">
-                  <div className="flex items-center justify-center gap-2">
-                    <Badge variant="secondary">
-                      {site.studies?.length || 0} Studies
-                    </Badge>
-                    {site.studies?.length > 0 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedSiteForStudies(site);
-                          setShowStudiesDialog(true);
-                        }}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell className="text-center">
-                  <div className="flex items-center justify-center gap-2">
-                    <Badge variant="secondary">
-                      {site.assignedUsers?.length || 0} Staff
-                    </Badge>
-                    {site.assignedUsers?.length > 0 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedSiteForStaff(site);
-                          setShowStaffDialog(true);
-                        }}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end space-x-2">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleViewActivity(site)}
-                          >
-                            <Activity className="h-4 w-4 text-gray-600" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>View Activity Log</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEdit(site)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Edit Facility</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(site)}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Delete Facility</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                </TableCell>
+        {isLoading ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+          </div>
+        ) : queryError ? (
+          <div className="flex justify-center items-center h-64 text-red-500">
+            <span>{queryError.message}</span>
+          </div>
+        ) : !facilitiesData?.data || facilitiesData.data.length === 0 ? (
+          <div className="flex justify-center items-center h-64">
+            <span>No facilities found</span>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[180px]">Facility Code</TableHead>
+                <TableHead>Facility Name</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>City, Country</TableHead>
+                <TableHead className="text-center">Active Studies</TableHead>
+                <TableHead className="text-center">Assigned Staff</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {facilitiesData?.data.map((facility) => (
+                <TableRow 
+                  key={facility._id} 
+                  className={`hover:bg-gray-50 ${
+                    selectedFacilities.includes(facility._id) 
+                      ? 'bg-blue-50' 
+                      : ''
+                  }`}
+                >
+                  <TableCell>
+                    <Badge variant="outline" className="font-mono">
+                      {facility.facilityId}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center space-x-2">
+                      <Building2 className="h-4 w-4 text-gray-500" />
+                      <div>
+                        <div className="font-medium">{facility.name}</div>
+                        <div className="text-sm text-gray-500">{facility.siteType}</div>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge 
+                      variant={getStatusColor(facility.status).variant}
+                      className={`px-2 py-1 ${getStatusColor(facility.status).text}`}
+                    >
+                      {facility.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center space-x-1">
+                      <MapPin className="h-4 w-4 text-gray-500" />
+                      <span>{facility.address?.city}, {facility.address?.country}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <Badge variant="secondary">
+                        {facility.studies?.length || 0} Studies
+                      </Badge>
+                      {facility.studies?.length > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedFacilityForStudies(facility);
+                            setShowStudiesDialog(true);
+                          }}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <Badge variant="secondary">
+                        {facility.assignedUsers?.length || 0} Staff
+                      </Badge>
+                      {facility.assignedUsers?.length > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedFacilityForStaff(facility);
+                            setShowStaffDialog(true);
+                          }}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end space-x-2">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleViewActivity(facility)}
+                            >
+                              <Activity className="h-4 w-4 text-gray-600" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>View Activity Log</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEdit(facility)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Edit Facility</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDelete(facility)}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Delete Facility</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
 
         {showForm && (
           <Dialog open={showForm} onOpenChange={setShowForm}>
@@ -1283,12 +1196,12 @@ const SiteManagement = () => {
                   Assign Facility
                 </DialogTitle>
               </DialogHeader>
-              <SiteForm
-                site={selectedSite}
+              <FacilityForm
+                facility={selectedFacility}
                 onSubmit={handleSubmit}
                 onCancel={() => {
                   setShowForm(false);
-                  setSelectedSite(null);
+                  setSelectedFacility(null);
                 }}
               />
             </DialogContent>
@@ -1356,11 +1269,11 @@ const SiteManagement = () => {
           </Dialog>
         )}
 
-        {showActivityLog && selectedSiteForActivity && (
+        {showActivityLog && selectedFacilityForActivity && (
           <Dialog open={showActivityLog} onOpenChange={setShowActivityLog}>
             <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Activity Log - {selectedSiteForActivity.name}</DialogTitle>
+                <DialogTitle>Activity Log - {selectedFacilityForActivity.name}</DialogTitle>
                 <DialogDescription>
                   View all activity and changes for this facility
                 </DialogDescription>
@@ -1370,12 +1283,12 @@ const SiteManagement = () => {
                 <div className="flex justify-between items-center">
                   <div className="flex items-center">
                     <Badge variant="outline" className="mr-2">
-                      {activityLogData[selectedSiteForActivity._id]?.length || 0} Events
+                      {activityLogData[selectedFacilityForActivity._id]?.length || 0} Events
                     </Badge>
                     <span className="text-sm text-gray-500">
                       Most recent activity: {
-                        activityLogData[selectedSiteForActivity._id]?.length > 0 
-                          ? formatDate(activityLogData[selectedSiteForActivity._id][0].timestamp)
+                        activityLogData[selectedFacilityForActivity._id]?.length > 0 
+                          ? formatDate(activityLogData[selectedFacilityForActivity._id][0].timestamp)
                           : 'No activity'
                       }
                     </span>
@@ -1389,9 +1302,9 @@ const SiteManagement = () => {
                 </div>
                 
                 <div className="border rounded-md">
-                  {activityLogData[selectedSiteForActivity._id]?.length > 0 ? (
+                  {activityLogData[selectedFacilityForActivity._id]?.length > 0 ? (
                     <div className="divide-y">
-                      {activityLogData[selectedSiteForActivity._id]
+                      {activityLogData[selectedFacilityForActivity._id]
                         .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
                         .map(log => (
                         <div key={log.id} className={`p-3 hover:bg-gray-50 ${
@@ -1406,14 +1319,14 @@ const SiteManagement = () => {
                           <div className="flex justify-between">
                             <div className="flex items-center">
                               <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center mr-3">
-                                {log.action === "Site Created" && <Building2 className="h-4 w-4 text-blue-500" />}
+                                {log.action === "Facility Created" && <Building2 className="h-4 w-4 text-blue-500" />}
                                 {log.action === "Study Assigned" && <ClipboardList className="h-4 w-4 text-purple-500" />}
                                 {log.action === "User Assigned" && <Users className="h-4 w-4 text-green-500" />}
-                                {log.action === "Site Activated" && <CheckCircle2 className="h-4 w-4 text-green-500" />}
-                                {log.action === "Site Suspended" && <AlertTriangle className="h-4 w-4 text-amber-500" />}
+                                {log.action === "Facility Activated" && <CheckCircle2 className="h-4 w-4 text-green-500" />}
+                                {log.action === "Facility Suspended" && <AlertTriangle className="h-4 w-4 text-amber-500" />}
                                 {log.action === "Enrollment Updated" && <Activity className="h-4 w-4 text-blue-500" />}
-                                {log.action === "Site Information Updated" && <Pencil className="h-4 w-4 text-gray-500" />}
-                                {log.action === "Site Status Changed" && <RefreshCcw className="h-4 w-4 text-amber-500" />}
+                                {log.action === "Facility Information Updated" && <Pencil className="h-4 w-4 text-gray-500" />}
+                                {log.action === "Facility Status Changed" && <RefreshCcw className="h-4 w-4 text-amber-500" />}
                               </div>
                               <div>
                                 <div className="font-medium">{log.action}</div>
@@ -1439,17 +1352,17 @@ const SiteManagement = () => {
           </Dialog>
         )}
 
-        {showStudiesDialog && selectedSiteForStudies && (
+        {showStudiesDialog && selectedFacilityForStudies && (
           <Dialog open={showStudiesDialog} onOpenChange={setShowStudiesDialog}>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
-                <DialogTitle>Active Studies - {selectedSiteForStudies.name}</DialogTitle>
+                <DialogTitle>Active Studies - {selectedFacilityForStudies.name}</DialogTitle>
                 <DialogDescription>
                   List of all studies assigned to this facility
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
-                {selectedSiteForStudies.studies.map(study => (
+                {selectedFacilityForStudies.studies.map(study => (
                   <div key={study._id} className="flex items-start space-x-4 p-4 border rounded-lg bg-gray-50">
                     <div className="flex-1">
                       <h4 className="font-medium">{study.title}</h4>
@@ -1472,17 +1385,17 @@ const SiteManagement = () => {
           </Dialog>
         )}
 
-        {showStaffDialog && selectedSiteForStaff && (
+        {showStaffDialog && selectedFacilityForStaff && (
           <Dialog open={showStaffDialog} onOpenChange={setShowStaffDialog}>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
-                <DialogTitle>Assigned Staff - {selectedSiteForStaff.name}</DialogTitle>
+                <DialogTitle>Assigned Staff - {selectedFacilityForStaff.name}</DialogTitle>
                 <DialogDescription>
                   List of all staff members assigned to this facility
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
-                {selectedSiteForStaff.assignedUsers?.map(user => (
+                {selectedFacilityForStaff.assignedUsers?.map(user => (
                   <div key={user._id} className="flex items-start space-x-4 p-4 border rounded-lg bg-gray-50">
                     <div className="flex-1">
                       <h4 className="font-medium">{user.name}</h4>
@@ -1523,23 +1436,23 @@ const SiteManagement = () => {
                     <AccordionContent>
                       <div className="pt-4">
                         <div className="space-y-4">
-                          {sites.map(site => (
-                            <div key={site._id} className="space-y-2">
+                          {sites.map(facility => (
+                            <div key={facility._id} className="space-y-2">
                               <div className="flex justify-between items-center">
                                 <div className="flex items-center">
                                   <Building2 className="w-4 h-4 mr-2 text-gray-500" />
-                                  <span className="font-medium">{site.name}</span>
+                                  <span className="font-medium">{facility.name}</span>
                                 </div>
                                 <div className="text-sm">
-                                  <span className="font-medium">{site.actualEnrollment}</span>
-                                  <span className="text-gray-500">/{site.enrollmentTarget}</span>
+                                  <span className="font-medium">{facility.actualEnrollment}</span>
+                                  <span className="text-gray-500">/{facility.enrollmentTarget}</span>
                                   <span className="ml-2 text-gray-500">
-                                    ({Math.round((site.actualEnrollment / site.enrollmentTarget) * 100)}%)
+                                    ({Math.round((facility.actualEnrollment / facility.enrollmentTarget) * 100)}%)
                                   </span>
                                 </div>
                               </div>
                               <Progress 
-                                value={(site.actualEnrollment / site.enrollmentTarget) * 100} 
+                                value={(facility.actualEnrollment / facility.enrollmentTarget) * 100} 
                                 className="h-2"
                               />
                             </div>
@@ -1557,7 +1470,7 @@ const SiteManagement = () => {
                       <div className="pt-4">
                         <div className="grid grid-cols-4 gap-2">
                           {['ACTIVE', 'PLANNED', 'SUSPENDED', 'TERMINATED'].map(status => {
-                            const count = sites.filter(site => site.status === status).length;
+                            const count = sites.filter(facility => facility.status === status).length;
                             const percentage = Math.round((count / sites.length) * 100);
                             const statusStyle = getStatusColor(status);
                             
@@ -1587,10 +1500,10 @@ const SiteManagement = () => {
                     <AccordionContent>
                       <div className="pt-4">
                         <div className="space-y-3">
-                          {Array.from(new Set(sites.map(site => site.address?.country))).map(country => {
+                          {Array.from(new Set(sites.map(facility => facility.address?.country))).map(country => {
                             if (!country) return null;
                             
-                            const sitesInCountry = sites.filter(site => site.address?.country === country);
+                            const sitesInCountry = sites.filter(facility => facility.address?.country === country);
                             const percentage = Math.round((sitesInCountry.length / sites.length) * 100);
                             
                             return (
@@ -1624,4 +1537,4 @@ const SiteManagement = () => {
   );
 };
 
-export default SiteManagement; 
+export default FacilityManagement; 

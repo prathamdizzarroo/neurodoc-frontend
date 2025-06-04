@@ -13,43 +13,61 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Building2, MapPin, Phone, Mail } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const formSchema = z.object({
-  siteName: z.string().min(1, { message: "Site name is required" }),
+  facilityName: z.string().min(1, "Facility name is required"),
   campusName: z.string().optional(),
-  address: z.string().min(1, { message: "Site address is required" }),
-  city: z.string().min(1, { message: "City is required" }),
-  state: z.string().min(1, { message: "State/Province is required" }),
-  country: z.string().min(1, { message: "Country is required" }),
-  postalCode: z.string().min(1, { message: "Postal code is required" }),
+  facilityType: z.string().min(1, "Facility type is required"),
+  address: z.string().min(1, "Address is required"),
+  city: z.string().min(1, "City is required"),
+  state: z.string().min(1, "State/Province is required"),
+  country: z.string().min(1, "Country is required"),
+  postalCode: z.string().min(1, "Postal code is required"),
   departmentName: z.string().optional(),
   departmentAddress: z.string().optional(),
   departmentPhone: z.string().optional(),
   departmentEmail: z.string().email().optional(),
 });
 
-const SiteForm = ({ site, onSubmit, onCancel }) => {
+const facilityTypes = [
+  { value: 'HOSPITAL', label: 'Hospital' },
+  { value: 'CLINIC', label: 'Clinic' },
+  { value: 'RESEARCH_CENTER', label: 'Research Center' },
+  { value: 'PHYSICIAN_OFFICE', label: 'Physician Office' },
+  { value: 'OTHER', label: 'Other' }
+];
+
+const FacilityForm = ({ facility, onSubmit, onCancel }) => {
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      siteName: site?.name || "",
-      campusName: site?.campusName || "",
-      address: site?.address?.street || "",
-      city: site?.address?.city || "",
-      state: site?.address?.state || "",
-      country: site?.address?.country || "",
-      postalCode: site?.address?.postalCode || "",
-      departmentName: site?.department?.name || "",
-      departmentAddress: site?.department?.address || "",
-      departmentPhone: site?.department?.phone || "",
-      departmentEmail: site?.department?.email || "",
+      facilityName: facility?.name || "",
+      campusName: facility?.campusName || "",
+      facilityType: facility?.facilityType || "",
+      address: facility?.address?.street || "",
+      city: facility?.address?.city || "",
+      state: facility?.address?.state || "",
+      country: facility?.address?.country || "",
+      postalCode: facility?.address?.postalCode || "",
+      departmentName: facility?.department?.name || "",
+      departmentAddress: facility?.department?.address || "",
+      departmentPhone: facility?.department?.phone || "",
+      departmentEmail: facility?.department?.email || "",
     },
   });
 
   const handleSubmit = (data) => {
-    onSubmit({
-      name: data.siteName,
+    const formData = {
+      name: data.facilityName,
       campusName: data.campusName,
+      facilityType: data.facilityType,
       address: {
         street: data.address,
         city: data.city,
@@ -63,7 +81,14 @@ const SiteForm = ({ site, onSubmit, onCancel }) => {
         phone: data.departmentPhone,
         email: data.departmentEmail,
       },
-    });
+    };
+
+    // If this is an update, include the facilityId
+    if (facility?.facilityId) {
+      formData.facilityId = facility.facilityId;
+    }
+
+    onSubmit(formData);
   };
 
   return (
@@ -75,16 +100,40 @@ const SiteForm = ({ site, onSubmit, onCancel }) => {
           <div className="space-y-4">
             <FormField
               control={form.control}
-              name="siteName"
+              name="facilityName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Site Name *</FormLabel>
+                  <FormLabel>Facility Name *</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <Building2 className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
-                      <Input className="pl-10" placeholder="Enter Site Name" {...field} />
+                      <Input className="pl-10" placeholder="Enter Facility Name" {...field} />
                     </div>
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="facilityType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Facility Type *</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select facility type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {facilityTypes.map((type) => (
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
@@ -117,11 +166,11 @@ const SiteForm = ({ site, onSubmit, onCancel }) => {
               name="address"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Site Address *</FormLabel>
+                  <FormLabel>Facility Address *</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
-                      <Input className="pl-10" placeholder="Enter Site Address" {...field} />
+                      <Input className="pl-10" placeholder="Enter Facility Address" {...field} />
                     </div>
                   </FormControl>
                   <FormMessage />
@@ -277,7 +326,7 @@ const SiteForm = ({ site, onSubmit, onCancel }) => {
             Cancel
           </Button>
           <Button type="submit">
-            {site ? 'Update Site' : 'Add Site'}
+            {facility ? 'Update Facility' : 'Add Facility'}
           </Button>
         </div>
       </form>
@@ -285,4 +334,4 @@ const SiteForm = ({ site, onSubmit, onCancel }) => {
   );
 };
 
-export default SiteForm; 
+export default FacilityForm; 

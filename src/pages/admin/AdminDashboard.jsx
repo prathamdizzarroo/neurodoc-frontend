@@ -12,7 +12,7 @@ import StudyManagement from './studies/StudyManagement';
 import UserManagement from './users/UserManagement';
 import ComplianceDashboard from './compliance/ComplianceDashboard';
 import SystemSettings from './settings/SystemSettings';
-import SiteManagement from './SiteManagement';
+import FacilityManagement from './FacilityManagement';
 import SiteAssignmentManagement from '../../components/sites/SiteAssignmentManagement';
 import ClinicalTrialsPage from '../clinical-trials/ClinicalTrialsPage';
 import TMF_Viewer from '../tmf_viewer/TMFViewer';
@@ -285,7 +285,7 @@ const AdminDashboard = () => {
         </TabsContent>
 
         <TabsContent value="facilities">
-          <SiteManagement />
+          <FacilityManagement />
         </TabsContent>
 
         <TabsContent value="sites">
