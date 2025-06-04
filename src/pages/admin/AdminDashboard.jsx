@@ -289,19 +289,7 @@ const AdminDashboard = () => {
         </TabsContent>
 
         <TabsContent value="sites">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <div>
-                  <h2 className="text-2xl font-semibold">Site Assignments</h2>
-                  <p className="text-muted-foreground">
-                    Manage study-specific assignments of facilities and users
-                  </p>
-                </div>
-              </div>
               <SiteAssignmentManagement />
-            </CardContent>
-          </Card>
         </TabsContent>
 
         <TabsContent value="users">
