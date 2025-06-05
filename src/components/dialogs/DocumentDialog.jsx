@@ -29,6 +29,59 @@ import { format } from 'date-fns';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from "@/hooks/use-toast"
 import tmfService from '../../services/tmf.serivce';
+import { artifactSubartifacts } from '@/data/artifactSubartifacts';
+
+// Section mapping
+const sectionMapping = {
+  "01.01": "Trial Oversight",
+  "01.02": "Trial Team",
+  "01.03": "Trial Committee",
+  "01.04": "Meetings",
+  "01.05": "General",
+  "02.01": "Product and Trial Documentation",
+  "02.02": "Subject Documentation",
+  "02.03": "Reports",
+  "02.04": "General",
+  "03.01": "Trial Approval",
+  "03.02": "Investigational Medicinal Product",
+  "03.03": "Trial Status Reporting",
+  "03.04": "General",
+  "04.01": "IRB or IEC Trial Approval",
+  "04.02": "Other Committees",
+  "04.03": "Trial Status Reporting",
+  "04.04": "General",
+  "05.01": "Site Selection",
+  "05.02": "Site Set-up",
+  "05.03": "Site Initiation",
+  "05.04": "Site Management",
+  "05.05": "General",
+  "06.01": "IP Documentation",
+  "06.02": "IP Release Process Documentation",
+  "06.03": "IP Allocation Documentation",
+  "06.04": "Storage",
+  "06.05": "Non-IP Documentation",
+  "06.06": "Interactive Response Technology",
+  "06.07": "General",
+  "07.01": "Safety Documentation",
+  "07.02": "Trial Status Reporting",
+  "07.03": "General",
+  "08.01": "Facility Documentation",
+  "08.02": "Sample Documentation",
+  "08.03": "General",
+  "09.01": "Third Party Oversight",
+  "09.02": "Third Party Set-up",
+  "09.03": "General",
+  "10.01": "Data Management Oversight",
+  "10.02": "Data Capture",
+  "10.03": "Database",
+  "10.04": "EDC Management",
+  "10.05": "General",
+  "11.01": "Statistics Oversight",
+  "11.02": "Randomization",
+  "11.03": "Analysis",
+  "11.04": "Report",
+  "11.05": "General"
+};
 
 // Predefined list of zone names
 const zoneNames = [
@@ -333,6 +386,21 @@ const subArtifactNames = [
   "Efficacy Report"
 ];
 
+// Predefined list of section numbers
+const sectionNumbers = [
+  "01.01", "01.02", "01.03", "01.04", "01.05",
+  "02.01", "02.02", "02.03", "02.04",
+  "03.01", "03.02", "03.03", "03.04",
+  "04.01", "04.02", "04.03", "04.04",
+  "05.01", "05.02", "05.03", "05.04", "05.05",
+  "06.01", "06.02", "06.03", "06.04", "06.05", "06.06", "06.07",
+  "07.01", "07.02", "07.03",
+  "08.01", "08.02", "08.03",
+  "09.01", "09.02", "09.03",
+  "10.01", "10.02", "10.03", "10.04", "10.05",
+  "11.01", "11.02", "11.03", "11.04", "11.05"
+];
+
 const DocumentDialog = ({ 
   open, 
   initialSelectedItem,
@@ -347,6 +415,9 @@ const DocumentDialog = ({
     fileType: '',
     error: ''
   });
+
+  // Add state to track if document info should be shown
+  const [showDocumentInfo, setShowDocumentInfo] = useState(false);
 
   const { toast } = useToast()
 
@@ -384,6 +455,9 @@ const DocumentDialog = ({
   } = useForm({
     defaultValues: {
       documentTitle: '',
+      description: '',
+      documentType: '',
+      tmfReference: '',
       effectiveDate: null,
       expirationDate: null,
       accessLevel: 'Restricted',
@@ -391,7 +465,38 @@ const DocumentDialog = ({
       study: '',
       site: '',
       country: '',
-      indication: ''
+      indication: '',
+      mimeType: '',
+      pageCount: '',
+      language: 'en',
+      documentDate: null,
+      approvalDate: null,
+      author: '',
+      contributors: [],
+      qualityControlStatus: 'PENDING',
+      completenessStatus: 'PENDING_REVIEW',
+      archivalStatus: 'ACTIVE',
+      regulatoryAuthority: '',
+      gcpComplianceStatus: 'PENDING_REVIEW',
+      retentionDuration: '',
+      retentionStartDate: null,
+      retentionEndDate: null,
+      // Zone fields
+      zoneNumber: '',
+      zoneName: '',
+      zoneDescription: '',
+      // Section fields
+      sectionNumber: '',
+      sectionName: '',
+      sectionDescription: '',
+      // Artifact fields
+      artifactNumber: '',
+      artifactName: '',
+      artifactDescription: '',
+      mandatory: false,
+      // Document fields
+      status: 'Draft',
+      uploadDate: new Date()
     }
   });
 
@@ -399,6 +504,59 @@ const DocumentDialog = ({
   const accessLevel = watch('accessLevel');
   const effectiveDate = watch('effectiveDate');
   const expirationDate = watch('expirationDate');
+
+  // Add watchers for artifactNumber and subArtifactName
+  const artifactNumber = watch('artifactNumber');
+  const subArtifactName = watch('subArtifactName');
+
+  // Add watchers for sectionNumber
+  const sectionNumber = watch('sectionNumber');
+
+  // Effect to handle section number changes
+  useEffect(() => {
+    if (sectionNumber && sectionMapping[sectionNumber]) {
+      setValue('sectionName', sectionMapping[sectionNumber]);
+    }
+  }, [sectionNumber, setValue]);
+
+  // Effect to handle artifact number changes
+  useEffect(() => {
+    if (artifactNumber && artifactSubartifacts[artifactNumber]) {
+      setValue('artifactName', artifactSubartifacts[artifactNumber].name);
+      // Reset sub-artifact when artifact changes
+      setValue('subArtifactName', '');
+    }
+  }, [artifactNumber, setValue]);
+
+  // Effect to handle initialSelectedItem changes
+  useEffect(() => {
+    console.log('DocumentDialog - initialSelectedItem:', initialSelectedItem);
+    
+    if (open && initialSelectedItem) {
+      // Reset form first
+      reset();
+      
+      // Auto-fill zone information if available
+      if (initialSelectedItem.type === 'zone') {
+        const zoneData = initialSelectedItem.item || initialSelectedItem;
+        console.log('Setting zone values:', {
+          zoneNumber: zoneData.zoneNumber,
+          zoneName: zoneData.zoneName
+        });
+        
+        setValue('zoneNumber', zoneData.zoneNumber);
+        setValue('zoneName', zoneData.zoneName);
+      }
+    }
+  }, [open, initialSelectedItem, setValue, reset]);
+
+  // Add a watcher to see the current form values
+  const zoneName = watch('zoneName');
+  const zoneNumber = watch('zoneNumber');
+
+  useEffect(() => {
+    console.log('Current form values:', { zoneName, zoneNumber });
+  }, [zoneName, zoneNumber]);
 
   // Initial data loading effect
   useEffect(() => {
@@ -629,7 +787,7 @@ const DocumentDialog = ({
   };
 
   // File upload handler
-  const handleFileChange = (event) => {
+  const handleFileChange = async (event) => {
     const selectedFile = event.target.files[0];
     
     if (selectedFile) {
@@ -644,6 +802,7 @@ const DocumentDialog = ({
           fileType: '',
           error: 'File size exceeds 50MB limit'
         });
+        setShowDocumentInfo(false);
         return;
       }
       
@@ -660,6 +819,50 @@ const DocumentDialog = ({
         fileType: selectedFile.type,
         error: ''
       });
+
+      // Show document info section
+      setShowDocumentInfo(true);
+
+      // Populate document information based on file
+      try {
+        // Set basic document information
+        setValue('documentTitle', selectedFile.name.split('.')[0]); // Use filename without extension as title
+        setValue('mimeType', selectedFile.type);
+        setValue('documentDate', new Date().toISOString().split('T')[0]); // Set current date as document date
+        setValue('uploadDate', new Date().toISOString().split('T')[0]);
+        
+        // If it's a PDF, try to get page count
+        if (selectedFile.type === 'application/pdf') {
+          // You would need to implement a PDF page count function here
+          // For now, we'll set it to null
+          setValue('pageCount', null);
+        }
+
+        // Set default language to English
+        setValue('language', 'en');
+
+        // Set default status to DRAFT
+        setValue('status', 'DRAFT');
+
+        // Set default version to 1.0
+        setValue('version', '1.0');
+
+        // Set default quality control status
+        setValue('qualityControlStatus', 'PENDING');
+        setValue('completenessStatus', 'PENDING_REVIEW');
+        setValue('archivalStatus', 'ACTIVE');
+
+        // Set default GCP compliance status
+        setValue('gcpComplianceStatus', 'PENDING_REVIEW');
+
+      } catch (error) {
+        console.error("Error populating document information:", error);
+        toast({
+          title: "Error",
+          description: "Failed to populate document information",
+          variant: "destructive"
+        });
+      }
     }
   };
 
@@ -677,30 +880,26 @@ const DocumentDialog = ({
     try {
       // Prepare document data to match schema
       const documentData = {
-        // Identification
-        documentTitle: data.documentTitle,
+        // Zone Information
+        zoneNumber: data.zoneNumber,
+        zoneName: data.zoneName,
+        zoneDescription: data.zoneDescription,
+        
+        // Section Information
+        sectionNumber: data.sectionNumber,
+        sectionName: data.sectionName,
+        sectionDescription: data.sectionDescription,
+        
+        // Artifact Information
+        artifactNumber: data.artifactNumber,
+        artifactName: data.artifactName,
+        artifactDescription: data.artifactDescription,
+        mandatory: data.mandatory,
+        
+        // Document Information
         version: data.version,
-        
-        // Hierarchy references
-        ...(selectedHierarchy.zone && { zone: selectedHierarchy.zone._id }),
-        ...(selectedHierarchy.section && { section: selectedHierarchy.section._id }),
-        ...(selectedHierarchy.artifact && { artifact: selectedHierarchy.artifact._id }),
-        ...(selectedHierarchy.subArtifact && { subArtifact: selectedHierarchy.subArtifact._id }),
-        
-        // Status and Access
         status: data.status,
-        accessLevel: data.accessLevel,
-        
-        // Dates
-        documentDate: new Date(),
-        effectiveDate: data.effectiveDate,
-        expirationDate: data.expirationDate,
-        
-        // Study and Context Information
-        study: data.study,
-        site: data.site,
-        country: data.country,
-        indication: data.indication,
+        uploadDate: new Date(data.uploadDate),
         
         // File Information
         fileName: fileState.fileName,
@@ -736,6 +935,7 @@ const DocumentDialog = ({
       fileType: '',
       error: ''
     });
+    setShowDocumentInfo(false);
     setSelectedHierarchy({
       zone: null,
       section: null,
@@ -762,317 +962,350 @@ const DocumentDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={resetForm}>
-      <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Create New Document</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="space-y-3">
+          <DialogTitle className="text-2xl font-bold">Create New Document</DialogTitle>
+          <DialogDescription className="text-base">
             Add a new document to the selected location
           </DialogDescription>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit(submitForm)} className="space-y-4">
-          {/* Hierarchical Dropdowns */}
-          <div className="grid grid-cols-2 gap-4">
-            {/* Zone Dropdown */}
-            <div className="grid gap-2">
-              <Label>Zone</Label>
-              <Controller
-                name="zone"
-                control={control}
-                render={({ field }) => (
-                  <Select
-                    value={selectedHierarchy.zone?._id}
-                    onValueChange={(zoneId) => {
-                      const selectedZone = hierarchyState.zones.find(z => z._id === zoneId);
-                      setSelectedHierarchy(prev => ({ 
-                        ...prev, 
-                        zone: selectedZone,
-                        section: null,
-                        artifact: null,
-                        subArtifact: null
-                      }));
-                      handleZoneChange(zoneId);
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Zone" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {hierarchyState.loading.zones ? (
-                        <div className="flex items-center justify-center p-2">
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        </div>
-                      ) : (
-                        zoneNames.map((zoneName, index) => (
-                          <SelectItem key={index} value={zoneName}>
-                            {zoneName}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
+        <form onSubmit={handleSubmit(submitForm)} className="space-y-6">
+          {/* Zone Information Section */}
+          <div className="space-y-4 bg-gray-50/50 p-6 rounded-lg border border-gray-100">
+            <div className="flex items-center space-x-2">
+              <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                <span className="text-blue-600 font-semibold">1</span>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Zone Information</h3>
+            </div>
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="zoneNumber" className="text-sm font-medium text-gray-700">Zone Number</Label>
+                <Input
+                  id="zoneNumber"
+                  placeholder="e.g., 1"
+                  className="h-10"
+                  {...register('zoneNumber', { required: 'Zone number is required' })}
+                />
+                {errors.zoneNumber && (
+                  <p className="text-sm text-red-500 mt-1">{errors.zoneNumber.message}</p>
                 )}
-              />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="zoneName" className="text-sm font-medium text-gray-700">Zone Name</Label>
+                <Input
+                  id="zoneName"
+                  placeholder="e.g., Trial Management"
+                  className="h-10"
+                  {...register('zoneName', { required: 'Zone name is required' })}
+                />
+                {errors.zoneName && (
+                  <p className="text-sm text-red-500 mt-1">{errors.zoneName.message}</p>
+                )}
+              </div>
             </div>
-
-            {/* Section Dropdown */}
-            <div className="grid gap-2">
-              <Label>Section</Label>
-              <Select
-                value={selectedHierarchy.section?._id}
-                onValueChange={(sectionId) => {
-                  const selectedSection = hierarchyState.sections[selectedHierarchy.zone?._id]?.find(s => s._id === sectionId);
-                  setSelectedHierarchy(prev => ({ 
-                    ...prev, 
-                    section: selectedSection,
-                    artifact: null,
-                    subArtifact: null
-                  }));
-                  handleSectionChange(sectionId);
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Section" />
-                </SelectTrigger>
-                <SelectContent>
-                  {hierarchyState.loading.sections ? (
-                    <div className="flex items-center justify-center p-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    </div>
-                  ) : (
-                    sectionNames.map((sectionName, index) => (
-                      <SelectItem key={index} value={sectionName}>
-                        {sectionName}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            {/* Artifact Dropdown */}
-            <div className="grid gap-2">
-              <Label>Artifact</Label>
-              <Select
-                value={selectedHierarchy.artifact?._id}
-                onValueChange={(artifactId) => {
-                  const selectedArtifact = hierarchyState.artifacts[selectedHierarchy.section?._id]?.find(a => a._id === artifactId);
-                  setSelectedHierarchy(prev => ({ 
-                    ...prev, 
-                    artifact: selectedArtifact,
-                    subArtifact: null
-                  }));
-                  handleArtifactChange(artifactId);
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Artifact" />
-                </SelectTrigger>
-                <SelectContent>
-                  {hierarchyState.loading.artifacts ? (
-                    <div className="flex items-center justify-center p-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    </div>
-                  ) : (
-                    artifactNames.map((artifactName, index) => (
-                      <SelectItem key={index} value={artifactName}>
-                        {artifactName}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Sub-Artifact Dropdown */}
-            <div className="grid gap-2">
-              <Label>Sub-Artifact</Label>
-              <Select
-                value={selectedHierarchy.subArtifact?._id}
-                onValueChange={(subArtifactId) => {
-                  const selectedSubArtifact = hierarchyState.subArtifacts[selectedHierarchy.artifact?._id]?.find(sa => sa._id === subArtifactId);
-                  setSelectedHierarchy(prev => ({ 
-                    ...prev, 
-                    subArtifact: selectedSubArtifact
-                  }));
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Sub-Artifact" />
-                </SelectTrigger>
-                <SelectContent>
-                  {hierarchyState.loading.subArtifacts ? (
-                    <div className="flex items-center justify-center p-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    </div>
-                  ) : (
-                    subArtifactNames.map((subArtifactName, index) => (
-                      <SelectItem key={index} value={subArtifactName}>
-                        {subArtifactName}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Document Title Input */}
-          <div className="grid gap-2">
-            <Label htmlFor="documentTitle">Document Title <span className="text-red-500">*</span></Label>
-            <Input
-              id="documentTitle"
-              placeholder="e.g., Site Management Plan"
-              {...register('documentTitle', { required: 'Document title is required' })}
-            />
-            {errors.documentTitle && (
-              <p className="text-sm text-red-500">{errors.documentTitle.message}</p>
-            )}
-          </div>
-          
-          {/* Effective and Expiration Dates */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="effectiveDate">Effective Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    id="effectiveDate"
-                    variant="outline"
-                    className="w-full justify-start text-left font-normal"
-                    type="button"
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {effectiveDate ? format(effectiveDate, "PPP") : "Select date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={effectiveDate}
-                    onSelect={handleEffectiveDateChange}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="expirationDate">Expiration Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    id="expirationDate"
-                    variant="outline"
-                    className="w-full justify-start text-left font-normal"
-                    type="button"
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {expirationDate ? format(expirationDate, "PPP") : "Select date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={expirationDate}
-                    onSelect={handleExpirationDateChange}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-          </div>
-          
-          {/* Access Level */}
-          <div className="grid gap-2">
-            <Label htmlFor="accessLevel">Access Level</Label>
-            <Select 
-              value={accessLevel} 
-              onValueChange={handleAccessLevelChange}
-            >
-              <SelectTrigger id="accessLevel">
-                <SelectValue placeholder="Select access level" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Public">Public</SelectItem>
-                <SelectItem value="Restricted">Restricted</SelectItem>
-                <SelectItem value="Confidential">Confidential</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <Separator className="my-2" />
-          
-          <h4 className="text-sm font-semibold">Document Properties</h4>
-          
-          {/* Document Properties Inputs */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="version">Version</Label>
+            <div className="space-y-2">
+              <Label htmlFor="zoneDescription" className="text-sm font-medium text-gray-700">Zone Description</Label>
               <Input
-                id="version"
-                placeholder="e.g., 1.0"
-                {...register('version', { required: 'Version is required' })}
+                id="zoneDescription"
+                placeholder="e.g., High-level category"
+                className="h-10"
+                {...register('zoneDescription')}
               />
-              {errors.version && (
-                <p className="text-sm text-red-500">{errors.version.message}</p>
+            </div>
+          </div>
+
+          {/* Section Information */}
+          <div className="space-y-4 bg-gray-50/50 p-6 rounded-lg border border-gray-100">
+            <div className="flex items-center space-x-2">
+              <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
+                <span className="text-green-600 font-semibold">2</span>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Section Information</h3>
+            </div>
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="sectionNumber" className="text-sm font-medium text-gray-700">Section Number</Label>
+                <Select
+                  value={watch('sectionNumber')}
+                  onValueChange={(value) => setValue('sectionNumber', value)}
+                >
+                  <SelectTrigger id="sectionNumber" className="h-10">
+                    <SelectValue placeholder="Select section number" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.keys(sectionMapping).map((number) => (
+                      <SelectItem key={number} value={number}>
+                        {number}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.sectionNumber && (
+                  <p className="text-sm text-red-500 mt-1">{errors.sectionNumber.message}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="sectionName" className="text-sm font-medium text-gray-700">Section Name</Label>
+                <Input
+                  id="sectionName"
+                  placeholder="e.g., Trial Oversight"
+                  className="h-10"
+                  {...register('sectionName', { required: 'Section name is required' })}
+                  readOnly
+                />
+                {errors.sectionName && (
+                  <p className="text-sm text-red-500 mt-1">{errors.sectionName.message}</p>
+                )}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="sectionDescription" className="text-sm font-medium text-gray-700">Section Description</Label>
+              <Input
+                id="sectionDescription"
+                placeholder="e.g., Sub-category"
+                className="h-10"
+                {...register('sectionDescription')}
+              />
+            </div>
+          </div>
+          
+          {/* Artifact Information */}
+          <div className="space-y-4 bg-gray-50/50 p-6 rounded-lg border border-gray-100">
+            <div className="flex items-center space-x-2">
+              <div className="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center">
+                <span className="text-purple-600 font-semibold">3</span>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Artifact Information</h3>
+            </div>
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="artifactNumber" className="text-sm font-medium text-gray-700">Artifact Number</Label>
+                <Select
+                  value={watch('artifactNumber')}
+                  onValueChange={(value) => setValue('artifactNumber', value)}
+                >
+                  <SelectTrigger id="artifactNumber" className="h-10">
+                    <SelectValue placeholder="Select artifact number" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.keys(artifactSubartifacts).map((number) => (
+                      <SelectItem key={number} value={number}>
+                        {number}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.artifactNumber && (
+                  <p className="text-sm text-red-500 mt-1">{errors.artifactNumber.message}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="artifactName" className="text-sm font-medium text-gray-700">Artifact Name</Label>
+                <Input
+                  id="artifactName"
+                  placeholder="e.g., Trial Management Plan"
+                  className="h-10"
+                  {...register('artifactName', { required: 'Artifact name is required' })}
+                  readOnly
+                />
+                {errors.artifactName && (
+                  <p className="text-sm text-red-500 mt-1">{errors.artifactName.message}</p>
+                )}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="subArtifactName" className="text-sm font-medium text-gray-700">Sub-Artifact</Label>
+              <Select
+                value={watch('subArtifactName')}
+                onValueChange={(value) => setValue('subArtifactName', value)}
+                disabled={!artifactNumber}
+              >
+                <SelectTrigger id="subArtifactName" className="h-10">
+                  <SelectValue placeholder="Select sub-artifact" />
+                </SelectTrigger>
+                <SelectContent>
+                  {artifactNumber && artifactSubartifacts[artifactNumber]?.subartifacts.map((subArtifact) => (
+                    <SelectItem key={subArtifact} value={subArtifact}>
+                      {subArtifact}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.subArtifactName && (
+                <p className="text-sm text-red-500 mt-1">{errors.subArtifactName.message}</p>
               )}
             </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="study">Study</Label>
+            <div className="space-y-2">
+              <Label htmlFor="artifactDescription" className="text-sm font-medium text-gray-700">Artifact Description</Label>
               <Input
-                id="study"
-                placeholder="e.g., CLINICAL-001"
-                {...register('study')}
+                id="artifactDescription"
+                placeholder="e.g., Document expected here"
+                className="h-10"
+                {...register('artifactDescription')}
               />
+            </div>
+            <div className="flex items-center space-x-2 pt-2">
+              <input
+                type="checkbox"
+                id="mandatory"
+                {...register('mandatory')}
+                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <Label htmlFor="mandatory" className="text-sm font-medium text-gray-700">Mandatory Document</Label>
             </div>
           </div>
           
-          <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="site">Site</Label>
-              <Input
-                id="site"
-                placeholder="e.g., SITE-001"
-                {...register('site')}
-              />
+          {/* Document Information - Only show when file is uploaded */}
+          {showDocumentInfo && (
+            <div className="space-y-4 bg-gray-50/50 p-6 rounded-lg border border-gray-100">
+              <div className="flex items-center space-x-2">
+                <div className="h-8 w-8 rounded-full bg-orange-100 flex items-center justify-center">
+                  <span className="text-orange-600 font-semibold">4</span>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">Document Information</h3>
+              </div>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="documentType" className="text-sm font-medium text-gray-700">Document Type</Label>
+                  <Select 
+                    value={watch('documentType')} 
+                    onValueChange={(value) => setValue('documentType', value)}
+                  >
+                    <SelectTrigger id="documentType" className="h-10">
+                      <SelectValue placeholder="Select document type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="PROTOCOL">Protocol</SelectItem>
+                      <SelectItem value="INVESTIGATOR_BROCHURE">Investigator Brochure</SelectItem>
+                      <SelectItem value="INFORMED_CONSENT">Informed Consent</SelectItem>
+                      <SelectItem value="REGULATORY_DOCUMENT">Regulatory Document</SelectItem>
+                      <SelectItem value="CLINICAL_REPORT">Clinical Report</SelectItem>
+                      <SelectItem value="SAFETY_REPORT">Safety Report</SelectItem>
+                      <SelectItem value="QUALITY_DOCUMENT">Quality Document</SelectItem>
+                      <SelectItem value="TRAINING_DOCUMENT">Training Document</SelectItem>
+                      <SelectItem value="OTHER">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="tmfReference" className="text-sm font-medium text-gray-700">TMF Reference</Label>
+                  <Input
+                    id="tmfReference"
+                    placeholder="Enter TMF reference"
+                    className="h-10"
+                    {...register('tmfReference', { required: 'TMF reference is required' })}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="version" className="text-sm font-medium text-gray-700">Version</Label>
+                  <Input
+                    id="version"
+                    placeholder="e.g., 1.0"
+                    className="h-10"
+                    {...register('version', { required: 'Version is required' })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="status" className="text-sm font-medium text-gray-700">Status</Label>
+                  <Select 
+                    value={watch('status')} 
+                    onValueChange={(value) => setValue('status', value)}
+                  >
+                    <SelectTrigger id="status" className="h-10">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="DRAFT">Draft</SelectItem>
+                      <SelectItem value="IN_REVIEW">In Review</SelectItem>
+                      <SelectItem value="IN_QC">In QC</SelectItem>
+                      <SelectItem value="PENDING_APPROVAL">Pending Approval</SelectItem>
+                      <SelectItem value="APPROVED">Approved</SelectItem>
+                      <SelectItem value="REJECTED">Rejected</SelectItem>
+                      <SelectItem value="ARCHIVED">Archived</SelectItem>
+                      <SelectItem value="EXPIRED">Expired</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="documentDate" className="text-sm font-medium text-gray-700">Document Date</Label>
+                  <Input
+                    id="documentDate"
+                    type="date"
+                    className="h-10"
+                    {...register('documentDate', { required: 'Document date is required' })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="approvalDate" className="text-sm font-medium text-gray-700">Approval Date</Label>
+                  <Input
+                    id="approvalDate"
+                    type="date"
+                    className="h-10"
+                    {...register('approvalDate')}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="language" className="text-sm font-medium text-gray-700">Language</Label>
+                  <Select 
+                    value={watch('language')} 
+                    onValueChange={(value) => setValue('language', value)}
+                  >
+                    <SelectTrigger id="language" className="h-10">
+                      <SelectValue placeholder="Select language" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="en">English</SelectItem>
+                      <SelectItem value="es">Spanish</SelectItem>
+                      <SelectItem value="fr">French</SelectItem>
+                      <SelectItem value="de">German</SelectItem>
+                      <SelectItem value="it">Italian</SelectItem>
+                      <SelectItem value="pt">Portuguese</SelectItem>
+                      <SelectItem value="ru">Russian</SelectItem>
+                      <SelectItem value="zh">Chinese</SelectItem>
+                      <SelectItem value="ja">Japanese</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pageCount" className="text-sm font-medium text-gray-700">Page Count</Label>
+                  <Input
+                    id="pageCount"
+                    type="number"
+                    placeholder="Enter page count"
+                    className="h-10"
+                    {...register('pageCount')}
+                  />
+                </div>
+              </div>
             </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="country">Country</Label>
-              <Input
-                id="country"
-                placeholder="e.g., US"
-                {...register('country')}
-              />
-            </div>
-          </div>
-          
-          <div className="grid gap-2">
-            <Label htmlFor="indication">Indication</Label>
-            <Input
-              id="indication"
-              placeholder="e.g., Type 2 Diabetes"
-              {...register('indication')}
-            />
-          </div>
+          )}
 
           {/* File Upload Section */}
-          <div className="grid gap-2">
-            <Label htmlFor="fileUpload">Document File <span className="text-red-500">*</span></Label>
+          <div className="space-y-4 bg-gray-50/50 p-6 rounded-lg border border-gray-100">
+            <div className="flex items-center space-x-2">
+              <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
+                <span className="text-indigo-600 font-semibold">{showDocumentInfo ? '5' : '4'}</span>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">File Upload</h3>
+            </div>
             <div 
-              className="border-2 border-dashed rounded-md p-4 text-center cursor-pointer hover:bg-gray-50 transition-colors" 
+              className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:bg-gray-50 transition-colors"
               onClick={() => document.getElementById('fileUpload').click()}
             >
-              <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
-              <p className="text-sm text-gray-500">
+              <Upload className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+              <p className="text-base text-gray-600 mb-2">
                 {fileState.fileName ? fileState.fileName : 'Click to upload or drag and drop'}
               </p>
               {fileState.fileSize > 0 && (
-                <p className="text-xs text-gray-400 mt-1">{formatFileSize(fileState.fileSize)}</p>
+                <p className="text-sm text-gray-500">{formatFileSize(fileState.fileSize)}</p>
               )}
               <input
                 id="fileUpload"
@@ -1082,17 +1315,24 @@ const DocumentDialog = ({
               />
             </div>
             {fileState.error && (
-              <p className="text-sm text-red-500">{fileState.error}</p>
+              <p className="text-sm text-red-500 mt-2">{fileState.error}</p>
             )}
           </div>
           
           {/* Form Submission Buttons */}
-          <DialogFooter className="pt-4">
-            <Button type="button" variant="outline" onClick={resetForm}>
+          <DialogFooter className="pt-6">
+            <Button type="button" variant="outline" onClick={resetForm} className="h-10 px-6">
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Creating...' : 'Create Document'}
+            <Button type="submit" disabled={isSubmitting} className="h-10 px-6">
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                'Create Document'
+              )}
             </Button>
           </DialogFooter>
         </form>

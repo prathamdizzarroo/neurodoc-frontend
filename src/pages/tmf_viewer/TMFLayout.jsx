@@ -6,7 +6,7 @@ import ZoneDialog from '../../components/dialogs/ZoneDialog ';
 import SectionDialog from '../../components/dialogs/SectionDialog ';
 import ArtifactDialog from '../../components/dialogs/ArtifactDialog ';
 import SubArtifactDialog from '../../components/dialogs/SubArtifactDialog';
-import DocumentDialog from '../../components/dialogs/DocumentDialog ';
+import DocumentDialog from '../../components/dialogs/DocumentDialog';
 import documentService from '../../services/document.service';
 
 const TMFLayout = ({ children }) => {
@@ -97,8 +97,13 @@ const TMFLayout = ({ children }) => {
     };
 
     // Open dialog to create new items
-    const handleCreate = (type, parentId = null) => {
-        setParentId(parentId);
+    const handleCreate = (type, data = null) => {
+        if (type === 'document') {
+            console.log('Setting selected item for document:', data);
+            setSelectedItem(data);
+        } else {
+            setParentId(data);
+        }
         setDialogOpen(prev => ({ ...prev, [type]: true }));
     };
 
@@ -202,39 +207,63 @@ const TMFLayout = ({ children }) => {
         try {
             const formData = new FormData();
 
-            // Extract metadata from document data
-            const metadata = { ...documentData };
-
             // Handle file upload
             if (documentData.file) {
-                formData.append('file', documentData.file, documentData.file.name);
+                formData.append('file', documentData.file);
+                formData.append('fileName', documentData.file.name);
+                formData.append('fileSize', documentData.file.size);
+                formData.append('fileFormat', documentData.file.type);
             }
 
-            // Remove file object from metadata
-            delete metadata.file;
+            // Add zone information
+            formData.append('zoneNumber', documentData.zoneNumber || '');
+            formData.append('zoneName', documentData.zoneName || '');
+            formData.append('zoneDescription', documentData.zoneDescription || '');
 
-            // Convert date fields to ISO format
-            ['documentDate', 'effectiveDate', 'expirationDate'].forEach(field => {
-                if (metadata[field]) {
-                    metadata[field] = new Date(metadata[field]).toISOString();
-                }
-            });
+            // Add section information
+            formData.append('sectionNumber', documentData.sectionNumber || '');
+            formData.append('sectionName', documentData.sectionName || '');
+            formData.append('sectionDescription', documentData.sectionDescription || '');
 
-            // Append metadata as JSON
-            formData.append('metadata', JSON.stringify(metadata));
+            // Add artifact information
+            formData.append('artifactNumber', documentData.artifactNumber || '');
+            formData.append('artifactName', documentData.artifactName || '');
+            formData.append('artifactDescription', documentData.artifactDescription || '');
 
-            // Get user ID from local storage
-            const user = localStorage.getItem('user');
-            // const userId = user ? JSON.parse(user)._id : null;
-            const userId = '67eb40dcddde69be0369d620'
+            // Add subArtifact information
+            formData.append('subArtifactNumber', documentData.subArtifactNumber || '');
+            formData.append('subArtifactName', documentData.subArtifactName || '');
+            formData.append('subArtifactDescription', documentData.subArtifactDescription || '');
 
-            if (!userId) throw new Error("User not authenticated");
+            // Add other required fields
+            formData.append('documentTitle', documentData.documentTitle || '');
+            formData.append('version', documentData.version || '1.0');
+            formData.append('status', documentData.status || 'DRAFT');
+            formData.append('documentDate', documentData.documentDate || new Date().toISOString());
+            formData.append('documentType', documentData.documentType || 'OTHER');
+            formData.append('tmfReference', documentData.tmfReference || '');
+            formData.append('study', documentData.study || '');
+            formData.append('country', documentData.country || '');
+            formData.append('site', documentData.site || '');
+            formData.append('author', documentData.author || '');
+            formData.append('uploadedBy', documentData.uploadedBy || '');
 
             // Call document creation service
-            await documentService.create(userId, formData);
+            const result = await documentService.create(formData);
             
             setDialogOpen(prev => ({ ...prev, document: false }));
-            toast({ title: "Success", description: "Document created successfully", variant: "default" });
+            toast({ 
+                title: "Success", 
+                description: "Document created successfully", 
+                variant: "default" 
+            });
+            
+            // Refresh document list
+            const updatedDocuments = await documentService.getAllDocuments();
+            setData(prev => ({
+                ...prev,
+                documents: updatedDocuments
+            }));
         } catch (error) {
             console.error("Error creating document:", error);
             toast({

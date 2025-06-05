@@ -10,7 +10,7 @@ export const useDocument = (document, onStatusChange) => {
   const handleWorkflowAction = async (action, data = {}) => {
     try {
       setIsSubmitting(true);
-      const response = await axios.post(`/api/tmf/documents/${document.id}/workflow`, {
+      const response = await axios.post(`/api/documents/${document.id}/workflow`, {
         action,
         userId: 'current-user-id', // Replace with actual user ID
         userName: 'Current User', // Replace with actual user name

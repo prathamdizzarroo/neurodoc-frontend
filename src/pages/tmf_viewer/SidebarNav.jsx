@@ -68,24 +68,21 @@ const SidebarNav = ({
       );
     }
     
-    if (!data.zones.length) {
-      return (
-        <div className="p-4 text-center text-muted-foreground">
-          <p>No zones found.</p>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="mt-2"
-            onClick={() => onCreate('zone')}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Zone
-          </Button>
-        </div>
-      );
-    }
+    const hardcodedZones = [
+      { _id: '1', zoneNumber: '1', zoneName: 'Trial Management' },
+      { _id: '2', zoneNumber: '2', zoneName: 'Central Trial Documents' },
+      { _id: '3', zoneNumber: '3', zoneName: 'Regulatory' },
+      { _id: '4', zoneNumber: '4', zoneName: 'IRB or IEC and other Approvals' },
+      { _id: '5', zoneNumber: '5', zoneName: 'Site Management' },
+      { _id: '6', zoneNumber: '6', zoneName: 'IP and Trial Supplies' },
+      { _id: '7', zoneNumber: '7', zoneName: 'Safety Reporting' },
+      { _id: '8', zoneNumber: '8', zoneName: 'Central and Local Testing' },
+      { _id: '9', zoneNumber: '9', zoneName: 'Third parties' },
+      { _id: '10', zoneNumber: '10', zoneName: 'Data Management' },
+      { _id: '11', zoneNumber: '11', zoneName: 'Statistics' }
+    ];
     
-    return data.zones.map(zone => (
+    return hardcodedZones.map(zone => (
       <div key={zone._id} className="mb-1">
         <div 
           className={cn(
@@ -97,7 +94,7 @@ const SidebarNav = ({
           )}
           onClick={() => {
             toggleExpand(zone._id, 'zone');
-            handleItemSelect('zone', zone);
+            handleItemSelect('zone', zone._id);
           }}
         >
           <Button variant="ghost" size="icon" className="h-4 w-4 mr-1">
@@ -122,8 +119,16 @@ const SidebarNav = ({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => onCreate('section', zone._id)}>
-                  Add Section
+                <DropdownMenuItem onClick={() => {
+                  const zoneData = {
+                    type: 'zone',
+                    zoneNumber: zone.zoneNumber,
+                    zoneName: zone.zoneName
+                  };
+                  console.log('Zone data being passed:', zoneData);
+                  onCreate('document', zoneData);
+                }}>
+                  Add Document
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -198,7 +203,6 @@ const SidebarNav = ({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-6 w-6">
-                  <Plus size={14} />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -278,7 +282,6 @@ const SidebarNav = ({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-6 w-6">
-                  <Plus size={14} />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -348,11 +351,18 @@ const SidebarNav = ({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-6 w-6">
-                  <Plus size={14} />
+                  {/* <Plus size={14} /> */}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => onCreate('document', subArtifact._id)}>
+                <DropdownMenuItem onClick={() => onCreate('document', {
+                  id: subArtifact._id,
+                  type: 'subArtifact',
+                  data: {
+                    subArtifactNumber: subArtifact.subArtifactNumber,
+                    subArtifactName: subArtifact.subArtifactName
+                  }
+                })}>
                   Add Document
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -368,15 +378,6 @@ const SidebarNav = ({
       <div className="h-full flex flex-col">
         <div className="p-4 border-b">
           <h2 className="text-lg font-semibold">TMF Structure</h2>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="w-full mt-2"
-            onClick={() => onCreate('zone')}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Zone
-          </Button>
         </div>
         <ScrollArea className="flex-1">
           <div className="p-2">

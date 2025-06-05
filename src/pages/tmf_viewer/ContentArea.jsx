@@ -53,10 +53,16 @@ const ContentArea = ({ selectedItem }) => {
     const fetchDocuments = async () => {
       try {
         const response = await documentService.getAllDocuments();
-        console.log("Fetched documents:", response);
+        console.log("Raw API Response:", response);
         
-        // Extract the data array from the response
-        const fetchedDocuments = response?.data || [];
+        // The response is already an array, no need to access .data
+        const fetchedDocuments = Array.isArray(response) ? response : [];
+        console.log("Processed Documents:", fetchedDocuments);
+        
+        if (fetchedDocuments.length === 0) {
+          console.log("No documents found in the response");
+        }
+        
         setDocuments(fetchedDocuments);
       } catch (error) {
         console.error('Error fetching documents:', error);
@@ -70,14 +76,27 @@ const ContentArea = ({ selectedItem }) => {
   // Columns definition with download and additional fields
   const columns = useMemo(() => [
     {
+      accessorKey: "documentId",
+      header: "Document ID",
+      cell: ({ row }) => {
+        console.log("Rendering row:", row.original);
+        return <div className="px-2 text-left">{row.getValue("documentId") || 'N/A'}</div>;
+      },
+    },
+    {
       accessorKey: "title",
       header: "Title",
       cell: ({ row }) => <div className="px-2 text-left">{row.getValue("title") || 'N/A'}</div>,
     },
     {
-      accessorKey: "status",
-      header: "Status",
-      cell: ({ row }) => <div className="px-2 text-center">{row.getValue("status") || 'N/A'}</div>,
+      accessorKey: "documentType",
+      header: "Document Type",
+      cell: ({ row }) => <div className="px-2 text-left">{row.getValue("documentType") || 'N/A'}</div>,
+    },
+    {
+      accessorKey: "tmfReference",
+      header: "TMF Reference",
+      cell: ({ row }) => <div className="px-2 text-left">{row.getValue("tmfReference") || 'N/A'}</div>,
     },
     {
       accessorKey: "version",
@@ -100,11 +119,24 @@ const ContentArea = ({ selectedItem }) => {
       cell: ({ row }) => <div className="px-2 text-left">{row.getValue("site") || 'N/A'}</div>,
     },
     {
-      accessorKey: "createdBy",
-      header: "Created By",
-      cell: ({ row }) => (
-        <div className="px-2 text-left">{row.original.createdBy?.userName || 'N/A'}</div>
-      ),
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) => <div className="px-2 text-center">{row.getValue("status") || 'N/A'}</div>,
+    },
+    {
+      accessorKey: "qualityControlStatus",
+      header: "QC Status",
+      cell: ({ row }) => <div className="px-2 text-center">{row.getValue("qualityControlStatus") || 'N/A'}</div>,
+    },
+    {
+      accessorKey: "completenessStatus",
+      header: "Completeness",
+      cell: ({ row }) => <div className="px-2 text-center">{row.getValue("completenessStatus") || 'N/A'}</div>,
+    },
+    {
+      accessorKey: "archivalStatus",
+      header: "Archival Status",
+      cell: ({ row }) => <div className="px-2 text-center">{row.getValue("archivalStatus") || 'N/A'}</div>,
     },
     {
       accessorKey: "zone",
@@ -127,24 +159,6 @@ const ContentArea = ({ selectedItem }) => {
       cell: ({ row }) => <div className="px-2 text-left">{row.original.subArtifact?.subArtifactName || 'N/A'}</div>,
     },
     {
-      accessorKey: "documentType",
-      header: "Document Type",
-      cell: ({ row }) => <div className="px-2 text-left">{row.getValue("documentType") || 'N/A'}</div>,
-    },
-    {
-      accessorKey: "tmfReference",
-      header: "TMF Reference",
-      cell: ({ row }) => <div className="px-2 text-left">{row.getValue("tmfReference") || 'N/A'}</div>,
-    },
-    {
-      accessorKey: "createdAt",
-      header: "Created At",
-      cell: ({ row }) => {
-        const createdAt = row.getValue("createdAt");
-        return <div className="px-2 text-center">{createdAt ? new Date(createdAt).toLocaleDateString() : 'N/A'}</div>;
-      },
-    },
-    {
       accessorKey: "documentDate",
       header: "Document Date",
       cell: ({ row }) => {
@@ -153,11 +167,19 @@ const ContentArea = ({ selectedItem }) => {
       },
     },
     {
-      accessorKey: "expirationDate",
-      header: "Expiration Date",
+      accessorKey: "creationDate",
+      header: "Created At",
       cell: ({ row }) => {
-        const expirationDate = row.getValue("expirationDate");
-        return <div className="px-2 text-center">{expirationDate ? new Date(expirationDate).toLocaleDateString() : 'N/A'}</div>;
+        const date = row.getValue("creationDate");
+        return <div className="px-2 text-center">{date ? new Date(date).toLocaleDateString() : 'N/A'}</div>;
+      },
+    },
+    {
+      accessorKey: "modificationDate",
+      header: "Modified At",
+      cell: ({ row }) => {
+        const date = row.getValue("modificationDate");
+        return <div className="px-2 text-center">{date ? new Date(date).toLocaleDateString() : 'N/A'}</div>;
       },
     },
     {
@@ -196,7 +218,20 @@ const ContentArea = ({ selectedItem }) => {
       columnVisibility,
       globalFilter,
     },
+    debugTable: true, // Enable table debugging
   });
+
+  // Add debug logging for table state
+  useEffect(() => {
+    console.log("Table State:", {
+      rowCount: table.getRowModel().rows.length,
+      documents: documents,
+      sorting,
+      columnFilters,
+      columnVisibility,
+      globalFilter
+    });
+  }, [table, documents, sorting, columnFilters, columnVisibility, globalFilter]);
 
   // Global search filter function
   const handleGlobalFilter = (value) => {
