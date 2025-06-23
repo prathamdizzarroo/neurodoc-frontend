@@ -1766,4 +1766,9 @@ export const artifactSubartifacts = {
     name: "Filenote",
     subartifacts: ["Filenote"]
   }
+};
+
+const renderSubArtifacts = (section) => {
+  const subArtifacts = section.subartifacts || [];
+  // ... render the subartifacts
 }; 

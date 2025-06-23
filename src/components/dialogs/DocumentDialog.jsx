@@ -493,6 +493,7 @@ const DocumentDialog = ({
       artifactNumber: '',
       artifactName: '',
       artifactDescription: '',
+      subArtifactName: '',  // Add default value for subArtifactName
       mandatory: false,
       // Document fields
       status: 'Draft',
@@ -536,19 +537,69 @@ const DocumentDialog = ({
       // Reset form first
       reset();
       
-      // Auto-fill zone information if available
-      if (initialSelectedItem.type === 'zone') {
-        const zoneData = initialSelectedItem.item || initialSelectedItem;
-        console.log('Setting zone values:', {
-          zoneNumber: zoneData.zoneNumber,
-          zoneName: zoneData.zoneName
-        });
+      // Handle different types of initialSelectedItem
+      if (initialSelectedItem.type === 'document' && initialSelectedItem.data) {
+        const data = initialSelectedItem.data;
         
-        setValue('zoneNumber', zoneData.zoneNumber);
-        setValue('zoneName', zoneData.zoneName);
+        // Set zone information
+        if (data.zoneNumber) {
+          setValue('zoneNumber', data.zoneNumber);
+          setValue('zoneName', data.zoneName);
+        }
+        
+        // Set section information
+        if (data.sectionNumber) {
+          setValue('sectionNumber', data.sectionNumber);
+          setValue('sectionName', data.sectionName);
+        }
+        
+        // Set artifact information
+        if (data.artifactNumber) {
+          setValue('artifactNumber', data.artifactNumber);
+          setValue('artifactName', data.artifactName);
+        }
+        
+        // Set subartifact information
+        if (data.subArtifactName) {
+          setValue('subArtifactName', data.subArtifactName);
+        }
+        
+        // If hierarchy data is present, use it to set the values
+        if (data.hierarchy) {
+          const { zone, section, artifact, subArtifact } = data.hierarchy;
+          
+          if (zone) {
+            setValue('zoneNumber', zone.number);
+            setValue('zoneName', zone.name);
+          }
+          
+          if (section) {
+            setValue('sectionNumber', section.number);
+            setValue('sectionName', section.name);
+          }
+          
+          if (artifact) {
+            setValue('artifactNumber', artifact.number);
+            setValue('artifactName', artifact.name);
+          }
+          
+          if (subArtifact) {
+            setValue('subArtifactName', subArtifact.name);
+          }
+        }
+        
+        console.log('Form values after setting:', {
+          zoneNumber: watch('zoneNumber'),
+          zoneName: watch('zoneName'),
+          sectionNumber: watch('sectionNumber'),
+          sectionName: watch('sectionName'),
+          artifactNumber: watch('artifactNumber'),
+          artifactName: watch('artifactName'),
+          subArtifactName: watch('subArtifactName')
+        });
       }
     }
-  }, [open, initialSelectedItem, setValue, reset]);
+  }, [open, initialSelectedItem, setValue, reset, watch]);
 
   // Add a watcher to see the current form values
   const zoneName = watch('zoneName');
@@ -878,37 +929,68 @@ const DocumentDialog = ({
     }
     
     try {
+      // Log the form data to verify subArtifactName is present
+      console.log('Form data before submission:', data);
+      
       // Prepare document data to match schema
       const documentData = {
-        // Zone Information
+        // Core document information
+        documentTitle: data.documentTitle,
+        title: data.documentTitle,
+        version: data.version,
+        description: data.description || '',
+        documentType: data.documentType || 'OTHER',
+        tmfReference: data.tmfReference || '',
+        
+        // Zone information
         zoneNumber: data.zoneNumber,
         zoneName: data.zoneName,
-        zoneDescription: data.zoneDescription,
+        zoneDescription: data.zoneDescription || '',
         
-        // Section Information
+        // Section information
         sectionNumber: data.sectionNumber,
         sectionName: data.sectionName,
-        sectionDescription: data.sectionDescription,
+        sectionDescription: data.sectionDescription || '',
         
-        // Artifact Information
+        // Artifact information
         artifactNumber: data.artifactNumber,
         artifactName: data.artifactName,
-        artifactDescription: data.artifactDescription,
-        mandatory: data.mandatory,
+        artifactDescription: data.artifactDescription || '',
         
-        // Document Information
-        version: data.version,
-        status: data.status,
+        // SubArtifact information - structured according to backend schema
+        subArtifact: {
+          subArtifactName: data.subArtifactName || '',
+          isActive: true
+        },
+        
+        mandatory: data.mandatory || false,
+        
+        // Status and dates
+        status: data.status || 'DRAFT',
         uploadDate: new Date(data.uploadDate),
+        documentDate: new Date(data.uploadDate),
         
-        // File Information
+        // File information
         fileName: fileState.fileName,
         fileSize: fileState.fileSize,
         fileFormat: fileState.fileType,
+        mimeType: fileState.fileType,
+        documentId: `doc_${Date.now()}`,
+        
+        // Additional fields
+        study: data.study || '',
+        country: data.country || '',
+        site: data.site || '',
+        fileUrl: '',
+        author: data.author || '',
+        uploadedBy: '',
         
         // File object for upload
         file: fileState.file
       };
+      
+      // Log the prepared document data
+      console.log('Prepared document data:', documentData);
       
       // Call onSubmit with the prepared document data
       await onSubmit(documentData);
@@ -1026,37 +1108,48 @@ const DocumentDialog = ({
             </div>
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="sectionNumber" className="text-sm font-medium text-gray-700">Section Number</Label>
+                <Label htmlFor="sectionName" className="text-sm font-medium text-gray-700">Section Name</Label>
                 <Select
-                  value={watch('sectionNumber')}
-                  onValueChange={(value) => setValue('sectionNumber', value)}
+                  value={watch('sectionName')}
+                  onValueChange={(value) => {
+                    // Find the section number for the selected name
+                    const sectionNumber = Object.entries(sectionMapping).find(
+                      ([_, name]) => name === value
+                    )?.[0];
+                    
+                    // Set both the section name and number
+                    setValue('sectionName', value);
+                    if (sectionNumber) {
+                      setValue('sectionNumber', sectionNumber);
+                    }
+                  }}
                 >
-                  <SelectTrigger id="sectionNumber" className="h-10">
-                    <SelectValue placeholder="Select section number" />
+                  <SelectTrigger id="sectionName" className="h-10">
+                    <SelectValue placeholder="Select section name" />
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.keys(sectionMapping).map((number) => (
-                      <SelectItem key={number} value={number}>
-                        {number}
+                    {Object.entries(sectionMapping).map(([number, name]) => (
+                      <SelectItem key={number} value={name}>
+                        {name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                {errors.sectionNumber && (
-                  <p className="text-sm text-red-500 mt-1">{errors.sectionNumber.message}</p>
+                {errors.sectionName && (
+                  <p className="text-sm text-red-500 mt-1">{errors.sectionName.message}</p>
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="sectionName" className="text-sm font-medium text-gray-700">Section Name</Label>
+                <Label htmlFor="sectionNumber" className="text-sm font-medium text-gray-700">Section Number</Label>
                 <Input
-                  id="sectionName"
-                  placeholder="e.g., Trial Oversight"
+                  id="sectionNumber"
+                  placeholder="e.g., 01.01"
                   className="h-10"
-                  {...register('sectionName', { required: 'Section name is required' })}
+                  {...register('sectionNumber', { required: 'Section number is required' })}
                   readOnly
                 />
-                {errors.sectionName && (
-                  <p className="text-sm text-red-500 mt-1">{errors.sectionName.message}</p>
+                {errors.sectionNumber && (
+                  <p className="text-sm text-red-500 mt-1">{errors.sectionNumber.message}</p>
                 )}
               </div>
             </div>
@@ -1081,37 +1174,44 @@ const DocumentDialog = ({
             </div>
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="artifactNumber" className="text-sm font-medium text-gray-700">Artifact Number</Label>
+                <Label htmlFor="artifactName" className="text-sm font-medium text-gray-700">Artifact Name</Label>
                 <Select
-                  value={watch('artifactNumber')}
-                  onValueChange={(value) => setValue('artifactNumber', value)}
+                  value={watch('artifactName')}
+                  onValueChange={(value) => {
+                    setValue('artifactName', value);
+                    // Find the artifact number for the selected name
+                    const artifactNumber = Object.entries(artifactSubartifacts).find(
+                      ([_, data]) => data.name === value
+                    )?.[0] || '';
+                    setValue('artifactNumber', artifactNumber);
+                  }}
                 >
-                  <SelectTrigger id="artifactNumber" className="h-10">
-                    <SelectValue placeholder="Select artifact number" />
+                  <SelectTrigger id="artifactName" className="h-10">
+                    <SelectValue placeholder="Select artifact name" />
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.keys(artifactSubartifacts).map((number) => (
-                      <SelectItem key={number} value={number}>
-                        {number}
+                    {Object.entries(artifactSubartifacts).map(([number, data]) => (
+                      <SelectItem key={number} value={data.name}>
+                        {data.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                {errors.artifactNumber && (
-                  <p className="text-sm text-red-500 mt-1">{errors.artifactNumber.message}</p>
+                {errors.artifactName && (
+                  <p className="text-sm text-red-500 mt-1">{errors.artifactName.message}</p>
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="artifactName" className="text-sm font-medium text-gray-700">Artifact Name</Label>
+                <Label htmlFor="artifactNumber" className="text-sm font-medium text-gray-700">Artifact Number</Label>
                 <Input
-                  id="artifactName"
-                  placeholder="e.g., Trial Management Plan"
+                  id="artifactNumber"
+                  placeholder="e.g., 01.01.01"
                   className="h-10"
-                  {...register('artifactName', { required: 'Artifact name is required' })}
+                  {...register('artifactNumber', { required: 'Artifact number is required' })}
                   readOnly
                 />
-                {errors.artifactName && (
-                  <p className="text-sm text-red-500 mt-1">{errors.artifactName.message}</p>
+                {errors.artifactNumber && (
+                  <p className="text-sm text-red-500 mt-1">{errors.artifactNumber.message}</p>
                 )}
               </div>
             </div>
@@ -1126,8 +1226,8 @@ const DocumentDialog = ({
                   <SelectValue placeholder="Select sub-artifact" />
                 </SelectTrigger>
                 <SelectContent>
-                  {artifactNumber && artifactSubartifacts[artifactNumber]?.subartifacts.map((subArtifact) => (
-                    <SelectItem key={subArtifact} value={subArtifact}>
+                  {artifactNumber && artifactSubartifacts[artifactNumber]?.subartifacts.map((subArtifact, index) => (
+                    <SelectItem key={`${artifactNumber}-subart-${index}`} value={subArtifact}>
                       {subArtifact}
                     </SelectItem>
                   ))}

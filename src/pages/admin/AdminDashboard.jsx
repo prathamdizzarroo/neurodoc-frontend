@@ -6,8 +6,17 @@ import {
   Users, FileText, Settings, Activity, Shield, 
   BarChart3, Building2, Globe2, AlertTriangle,
   Clock, TrendingUp, CheckCircle2, XCircle,
-  TrendingDown, Link, Plus, ClipboardList, FileSearch
+  TrendingDown, Link, Plus, ClipboardList, FileSearch,
+  ChevronRight, FileCheck, FolderArchive, Bell, Search,
+  Download, Upload, Filter, RefreshCw, Calendar,
+  BookOpen, FileWarning, History, HelpCircle,
+  UserCircle, LogOut, User
 } from 'lucide-react';
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import StudyManagement from './studies/StudyManagement';
 import UserManagement from './users/UserManagement';
 import ComplianceDashboard from './compliance/ComplianceDashboard';
@@ -16,12 +25,19 @@ import FacilityManagement from './FacilityManagement';
 import SiteAssignmentManagement from '../../components/sites/SiteAssignmentManagement';
 import ClinicalTrialsPage from '../clinical-trials/ClinicalTrialsPage';
 import TMF_Viewer from '../tmf_viewer/TMFViewer';
+import RegulatoryPackageTable from '../../components/regulatory/RegulatoryPackageTable';
+import CreateRegulatoryPackage from '../../components/regulatory/CreateRegulatoryPackage';
 import { useToast } from "@/components/ui/use-toast";
 import axios from 'axios';
 import { config } from '../../config/config';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import SitePackagePage from '../../components/sites/SitePackagePage';
+import SitePackageListPage from '../../components/sites/SitePackageListPage';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
+  const [selectedStudy, setSelectedStudy] = useState("");
+  const [selectedSite, setSelectedSite] = useState("");
   const [metrics, setMetrics] = useState({
     users: { total: 0, active: 0, pending: 0, deactivated: 0, growth: 0 },
     studies: { total: 0, active: 0, completed: 0, draft: 0, compliance: 0 },
@@ -37,6 +53,8 @@ const AdminDashboard = () => {
   });
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const [showCreatePackage, setShowCreatePackage] = useState(false);
+  const [selectedSitePackage, setSelectedSitePackage] = useState(null);
 
   useEffect(() => {
     fetchDashboardData();
@@ -68,6 +86,14 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleComplianceClick = () => {
+    setActiveTab("compliance");
+  };
+
+  const handleSettingsClick = () => {
+    setActiveTab("settings");
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -78,21 +104,130 @@ const AdminDashboard = () => {
 
   return (
     <div className="p-6 space-y-6 max-w-[1600px] mx-auto">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold">Neurodoc Admin Console</h1>
-          <p className="text-muted-foreground">
-            Manage your organization's eTMF system and monitor key metrics
-          </p>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 bg-green-50 text-green-700 px-3 py-1 rounded-full">
-            <div className="w-2 h-2 bg-green-500 rounded-full" />
-            System Status: Operational
+      {/* Enhanced Header with Veeva-inspired elements */}
+      <div className="flex flex-col gap-4">
+        {/* Top Bar */}
+        <div className="flex justify-between items-center pb-4 border-b">
+          {/* Left Section - Brand and Title */}
+          <div className="flex items-center gap-6">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Building2 className="w-5 h-5 text-primary" />
+                </div>
+                <h1 className="text-2xl font-bold tracking-tight">Neurodoc Admin Console</h1>
+              </div>
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Activity className="w-4 h-4" />
+                <p className="text-sm">
+                  Manage your organization's eTMF system and monitor key metrics
+                </p>
+              </div>
+            </div>
           </div>
-          <div className="text-sm text-muted-foreground">
-            Last updated: {new Date().toLocaleString()}
+
+          {/* Study Selector */}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <ClipboardList className="w-5 h-5 text-muted-foreground" />
+              <Select
+                value={selectedStudy}
+                onValueChange={setSelectedStudy}
+              >
+                <SelectTrigger className="w-[300px]">
+                  <SelectValue placeholder="Select a study" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="study1">Study 1</SelectItem>
+                  <SelectItem value="study2">Study 2</SelectItem>
+                  <SelectItem value="study3">Study 3</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Right Section - System Info and Actions */}
+          <div className="flex items-center gap-6">
+            {/* System Status */}
+            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 px-3 py-1 rounded-full">
+              <div className="flex items-center gap-1">
+                <div className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                <span>System Operational</span>
+              </div>
+              <span className="text-muted-foreground/50">•</span>
+              <span>Updated: 6/5/2025, 5:56 PM</span>
+            </div>
+
+            {/* Action Buttons Group */}
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon" className="h-9 w-9">
+                <History className="w-5 h-5" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-9 w-9 relative">
+                <Bell className="w-5 h-5" />
+                <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center">
+                  3
+                </Badge>
+              </Button>
+            </div>
+
+            {/* Admin Controls Group */}
+            <div className="flex items-center gap-4">
+              <Button 
+                variant="ghost" 
+                className={`h-9 px-3 ${activeTab === 'compliance' ? 'bg-primary/10' : ''}`}
+                onClick={handleComplianceClick}
+              >
+                <Shield className="w-4 h-4 mr-2" />
+                Compliance
+              </Button>
+              <Button 
+                variant="ghost" 
+                className={`h-9 px-3 ${activeTab === 'settings' ? 'bg-primary/10' : ''}`}
+                onClick={handleSettingsClick}
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                Settings
+              </Button>
+            </div>
+
+            {/* User Profile Group */}
+            <div className="flex items-center gap-4">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src="/avatars/01.png" alt="@admin" />
+                      <AvatarFallback>AD</AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">Admin User</p>
+                      <p className="text-xs leading-none text-muted-foreground">
+                        admin@neurodoc.com
+                      </p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem>
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Profile</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Settings</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
       </div>
@@ -113,6 +248,20 @@ const AdminDashboard = () => {
           >
             <FileText className="w-4 h-4 mr-2" />
             Studies
+          </TabsTrigger>
+          <TabsTrigger
+            value="regulatory-packages"
+            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+          >
+            <FileCheck className="w-4 h-4 mr-2" />
+            Regulatory
+          </TabsTrigger>
+          <TabsTrigger
+            value="site-packages"
+            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+          >
+            <FolderArchive className="w-4 h-4 mr-2" />
+            Site Packages
           </TabsTrigger>
           <TabsTrigger
             value="clinical-trials"
@@ -148,20 +297,6 @@ const AdminDashboard = () => {
           >
             <Users className="w-4 h-4 mr-2" />
             Users
-          </TabsTrigger>
-          <TabsTrigger
-            value="compliance"
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-          >
-            <Shield className="w-4 h-4 mr-2" />
-            Compliance
-          </TabsTrigger>
-          <TabsTrigger
-            value="settings"
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-          >
-            <Settings className="w-4 h-4 mr-2" />
-            Settings
           </TabsTrigger>
         </TabsList>
 
@@ -266,6 +401,62 @@ const AdminDashboard = () => {
 
         <TabsContent value="studies">
           <StudyManagement />
+        </TabsContent>
+
+        <TabsContent value="regulatory-packages">
+          <Card>
+            <CardContent className="p-6">
+              {!showCreatePackage ? (
+                <>
+                  <div className="flex justify-between items-center mb-6">
+                    <div>
+                      <h2 className="text-xl font-semibold">Regulatory Packages</h2>
+                      <p className="text-muted-foreground">Manage essential regulatory documents for clinical trials</p>
+                    </div>
+                    <Button 
+                      className="flex items-center gap-2"
+                      onClick={() => setShowCreatePackage(true)}
+                    >
+                      <Plus className="w-4 h-4" />
+                      New Package
+                    </Button>
+                  </div>
+                  <RegulatoryPackageTable />
+                </>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h2 className="text-xl font-semibold">Create New Regulatory Package</h2>
+                    <Button 
+                      variant="outline"
+                      onClick={() => setShowCreatePackage(false)}
+                    >
+                      Back to List
+                    </Button>
+                  </div>
+                  <CreateRegulatoryPackage />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="site-packages">
+          {selectedSitePackage ? (
+            <Card>
+              <CardContent className="p-6">
+                <Button variant="outline" className="mb-4" onClick={() => setSelectedSitePackage(null)}>
+                  Back to List
+                </Button>
+                <SitePackagePage packageData={selectedSitePackage} />
+              </CardContent>
+            </Card>
+          ) : (
+            <SitePackageListPage
+              onSelectPackage={pkg => setSelectedSitePackage(pkg)}
+              onCreateNew={() => setSelectedSitePackage({})}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="clinical-trials">
